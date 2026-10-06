@@ -63,3 +63,53 @@ def test_update_bars_refetches_history_after_readjustment(market_in, monkeypatch
     assert (first["new"], second["readjusted"]) == (1, 1)
     assert stored["date"].max() == "2026-01-09"
     assert stored["close"].round(6).unique().tolist() == [9.0]
+
+
+def test_turnover_puts_shares_and_volume_on_one_split_basis():
+    bars = pd.DataFrame({"date": ["2020-08-03", "2020-09-01"], "volume": [4.0, 4.0]})
+    counts = pd.DataFrame({"date": ["2020-07-17"], "value": [100.0], "available_from": ["2020-08-21"],
+                           "source": ["yahoo"]})
+    splits = pd.DataFrame({"date": ["2020-08-31"], "ratio": [4.0]})
+    turn = market_update.compute_turnover(bars, market_update.resolve_share_counts(counts, splits))
+    assert turn.to_dict() == {"2020-08-03": 1.0, "2020-09-01": 1.0}
+
+
+@pytest.mark.parametrize("sec_value, expected_sources", [(100.0, ["sec_edgar", "yahoo"]), (500.0, ["yahoo"])])
+def test_sec_counts_extend_yahoo_only_when_they_agree(sec_value, expected_sources):
+    counts = pd.DataFrame({
+        "date": ["2012-03-31", "2016-03-31", "2016-04-05"],
+        "value": [sec_value, sec_value, 100.0],
+        "available_from": ["2012-05-05", "2016-05-05", "2016-04-12"],
+        "source": ["sec_edgar", "sec_edgar", "yahoo"],
+    })
+    resolved = market_update.resolve_share_counts(counts, pd.DataFrame(columns=["date", "ratio"]))
+    assert sorted(resolved["source"].unique()) == expected_sources
+
+
+def test_foreign_and_multi_class_tickers_get_no_turnover(market_in):
+    market = market_in("US")
+    bars = pd.DataFrame({"date": ["2026-01-05"], "open": 10.0, "high": 10.0, "low": 10.0, "close": 10.0,
+                         "preclose": None, "volume": 50.0, "amount": 500.0, "turn": None, "pct_chg": None})
+    filers = pd.DataFrame({"code": ["AAA.US", "TM.US", "GOOG.US"], "cik": [1, 2, 3],
+                           "loc": ["US-CA", "JP-", "US-CA"], "ticker_count": [1, 1, 2]})
+    market_store.update_filers(market, filers, "CY2026Q1I")
+    for code in filers["code"]:
+        market_store.update_bars(market, code, bars, "split", "test")
+        market_store.update_bars(market, code, bars, "qfq", "test")
+        market_store.update_shares(market, pd.DataFrame({"code": [code], "date": ["2025-12-31"], "value": [1000.0],
+                                                         "available_from": ["2026-01-01"]}), "yahoo")
+    market_update.update_turnover(market, list(filers["code"]))
+    cache = market_store.get_bar_cache(market)
+    turn = {c: cache.get_daily(c, adjust="qfq")["turn"].iloc[0] for c in filers["code"]}
+    assert turn["AAA.US"] == 5.0
+    assert pd.isna(turn["TM.US"]) and pd.isna(turn["GOOG.US"])
+
+
+def test_update_bars_keeps_exchange_sessions_only(market_in, monkeypatch):
+    market = market_in("US")
+    monkeypatch.setattr(market_update, "get_provider", lambda name: FakeBars())
+    monkeypatch.setattr(market_update, "get_last_closed_session", lambda m: "2026-01-09")
+    market_update.update_bars(market, ["AAPL.US"])
+    dates = market_store.get_bar_cache(market).get_daily("AAPL.US", adjust="qfq")["date"].tolist()
+    assert dates[0] == "2026-01-02"
+    assert "2026-01-01" not in dates

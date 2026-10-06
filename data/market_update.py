@@ -5,7 +5,8 @@ Usage:
   python data/market_update.py --market US                          bars for the seed universe + benchmark
   python data/market_update.py --market US --universe all --limit 500
   python data/market_update.py --market US --symbols --bars --fundamentals --macro
-  python data/market_update.py --market MY
+  python data/market_update.py --market US --universe all --shares --turnover
+  python data/market_update.py --market MY --full                   re-download full history
   python data/market_update.py --status
 
 Providers, universe and history start come from config/markets.yaml (see docs/markets-data.md).
@@ -25,7 +26,7 @@ if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
 from data import market_store  # noqa: E402
-from data.markets import Market, get_last_closed_session, get_market, list_markets  # noqa: E402
+from data.markets import Market, get_last_closed_session, get_market, list_markets, list_sessions  # noqa: E402
 from data.providers import get_provider  # noqa: E402
 from data.providers.base import ProviderError  # noqa: E402
 
@@ -49,13 +50,16 @@ def update_symbol_master(market: Market) -> int:
         if source == "eodhd":
             frame = provider.list_symbols(market.provider_symbols["eodhd"]["exchange"])
             frame["code"] = frame["code"].map(market.to_canonical)
+        elif source == "yahoo":
+            frame = provider.list_symbols(market.provider_symbols["yahoo"]["exchange"])
+            frame["code"] = frame["code"].map(lambda c: market.from_provider(c, source))
         else:
             frame = provider.list_symbols()
             frame["code"] = frame["code"].map(lambda c: market.from_provider(c, source))
     return market_store.update_symbols(market, frame, source)
 
 
-def resolve_universe(market: Market, universe: str, limit: int = None) -> list:
+def resolve_universe(market: Market, universe: str, limit: int = None, is_stocks_only: bool = False) -> list:
     """Canonical codes to update, benchmark first."""
     if universe == "seed":
         codes = [market.to_canonical(c) for c in market.universe.get("seed", [])]
@@ -65,12 +69,15 @@ def resolve_universe(market: Market, universe: str, limit: int = None) -> list:
             update_symbol_master(market)
             master = market_store.list_symbols(market)
         master = master[master["is_active"] == 1]
-        if not market.universe.get("include_etfs", True):
+        if is_stocks_only or not market.universe.get("include_etfs", True):
             master = master[master["is_etf"] == 0]
         patterns = market.universe.get("exclude_name_patterns") or []
         if patterns:
             excluded = master["name"].fillna("").str.contains("|".join(patterns), flags=re.IGNORECASE)
             master = master[~excluded]
+        code_pattern = market.universe.get("code_pattern")
+        if code_pattern:
+            master = master[master["code"].str.rsplit(".", n=1).str[0].str.fullmatch(code_pattern)]
         codes = master["code"].tolist()
     codes = [market.benchmark_symbol] + [c for c in dict.fromkeys(codes) if c != market.benchmark_symbol]
     return codes[:limit] if limit else codes
@@ -105,31 +112,33 @@ def should_readjust(stored: pd.DataFrame, frame: pd.DataFrame) -> bool:
     return bool(drift > READJUST_TOLERANCE)
 
 
-def store_bars(cache, code: str, frame: pd.DataFrame, source: str, is_full: bool) -> int:
+def store_bars(market: Market, code: str, frame: pd.DataFrame, source: str, is_full: bool) -> int:
+    market_store.update_actions(market, code, frame, source)
     rows = 0
     for adjust, bars in build_bar_frames(frame).items():
         # the first incremental row has no preclose; it is already stored from the previous run
         bars = bars if is_full else bars.iloc[1:]
-        rows += cache.put_daily(code, bars, adjust=adjust, source=source)
+        rows += market_store.update_bars(market, code, bars, adjust, source)
     return rows
 
 
-def update_bars(market: Market, codes: list) -> dict:
-    """Full history for new codes; incremental with an overlap check for the rest."""
+def update_bars(market: Market, codes: list, is_full_refresh: bool = False) -> dict:
+    """Full history for new codes (or all with is_full_refresh); incremental with an overlap check otherwise."""
     source = market.providers.get("bars", "yahoo")
     provider = get_provider(source)
     cache = market_store.get_bar_cache(market)
     stats = {"requested": len(codes), "rows": 0, "new": 0, "readjusted": 0, "missing": []}
     last_session = get_last_closed_session(market)
+    sessions = list_sessions(market, market.history_start, last_session)
 
     def download(batch, start):
-        """Frames keyed by canonical code, cut at the last closed session (no intraday bars)."""
+        """Frames keyed by canonical code, exchange sessions only, up to the last closed one."""
         symbols = {market.to_provider(c, source): c for c in batch}
         frames = provider.list_daily_bars(list(symbols), start)
-        frames = {symbols[s]: f[f["date"] <= last_session] for s, f in frames.items()}
+        frames = {symbols[s]: f[f["date"].isin(sessions)] for s, f in frames.items()}
         return {c: f for c, f in frames.items() if not f.empty}
 
-    metas = {c: cache.get_meta(c, "qfq") for c in codes}
+    metas = {c: None if is_full_refresh else cache.get_meta(c, "qfq") for c in codes}
     new_codes = [c for c in codes if metas[c] is None]
     old_codes = [c for c in codes if metas[c] is not None]
     refetch = []
@@ -145,7 +154,7 @@ def update_bars(market: Market, codes: list) -> dict:
             elif should_readjust(cache.get_daily(code, start=start, adjust="qfq"), frame):
                 refetch.append(code)
             else:
-                stats["rows"] += store_bars(cache, code, frame, source, is_full=False)
+                stats["rows"] += store_bars(market, code, frame, source, is_full=False)
     full_codes = new_codes + refetch
     for i in range(0, len(full_codes), BATCH_SIZE):
         batch = full_codes[i:i + BATCH_SIZE]
@@ -155,9 +164,154 @@ def update_bars(market: Market, codes: list) -> dict:
             if frame is None:
                 stats["missing"].append(code)
                 continue
-            stats["rows"] += store_bars(cache, code, frame, source, is_full=True)
+            stats["rows"] += store_bars(market, code, frame, source, is_full=True)
     stats["new"] = len([c for c in new_codes if c not in stats["missing"]])
     stats["readjusted"] = len(refetch)
+    stats["off_calendar_dates_removed"] = market_store.delete_bars_off_calendar(market, sessions)
+    return stats
+
+
+def to_current_basis(counts: pd.DataFrame, splits: pd.DataFrame) -> pd.Series:
+    """Share counts restated on today's split basis, the basis of Yahoo volume."""
+    factors = [splits.loc[splits["date"] > d, "ratio"].prod() for d in counts["date"]]
+    return counts["value"] * pd.Series(factors, index=counts.index)
+
+
+def resolve_share_counts(counts: pd.DataFrame, splits: pd.DataFrame) -> pd.DataFrame:
+    """Yahoo counts, extended into earlier years by SEC counts when both agree where they overlap.
+
+    Agreement = median SEC/Yahoo ratio within 0.8–1.25; ADRs and share-class mismatches fail it.
+    """
+    counts = counts.assign(current=to_current_basis(counts, splits))
+    yahoo, sec = counts[counts["source"] == "yahoo"], counts[counts["source"] == "sec_edgar"]
+    if yahoo.empty or sec.empty:
+        return counts
+    both = pd.merge_asof(sec.assign(day=pd.to_datetime(sec["date"])).sort_values("day"),
+                         yahoo.assign(day=pd.to_datetime(yahoo["date"]))[["day", "current"]].sort_values("day"),
+                         on="day", suffixes=("", "_yahoo"), direction="nearest", tolerance=pd.Timedelta(days=60))
+    ratio = (both["current"] / both["current_yahoo"]).dropna().median()
+    if not 0.8 <= ratio <= 1.25:
+        return yahoo
+    return pd.concat([sec[sec["available_from"] < yahoo["available_from"].min()], yahoo])
+
+
+def compute_turnover(bars: pd.DataFrame, counts: pd.DataFrame) -> pd.Series:
+    """Daily turnover % = volume / shares outstanding (current split basis), indexed by date.
+
+    A count applies from its available_from date; dates before the first count reuse it.
+    """
+    if bars.empty or counts.empty:
+        return pd.Series(dtype=float)
+    left = pd.DataFrame({"date": pd.to_datetime(bars["date"]), "volume": bars["volume"].values})
+    right = pd.DataFrame({"date": pd.to_datetime(counts["available_from"]), "current": counts["current"].values})
+    right = right.sort_values("date")
+    merged = pd.merge_asof(left.sort_values("date"), right, on="date")
+    merged["current"] = merged["current"].fillna(right["current"].iloc[0])
+    turn = merged["volume"] / merged["current"] * 100
+    return pd.Series(turn.values, index=merged["date"].dt.strftime("%Y-%m-%d"))
+
+
+def list_quarters(start_year: int, today: date) -> list:
+    """SEC frame periods (CY2020Q2I = instant at the end of Q2 2020) that have started by today."""
+    return [(f"CY{y}Q{q}I", get_quarter_end(y, q)) for y in range(start_year, today.year + 1)
+            for q in range(1, 5) if date(y, 3 * q, 1) <= today]
+
+
+def get_quarter_end(year: int, quarter: int) -> date:
+    return date(year, 3 * quarter, 30 if quarter in (2, 3) else 31)
+
+
+def update_sec_shares(market: Market, codes: list, store, stats):
+    """SEC frames: every filer's cover-page count per quarter; tickers sharing a CIK are skipped."""
+    sec = get_provider("sec_edgar")
+    wanted = set(codes)
+    codes_by_cik = {}
+    for ticker, cik in sec.get_ticker_ciks().items():
+        codes_by_cik.setdefault(cik, []).append(market.from_provider(ticker, "sec_edgar"))
+    single = {cik: c[0] for cik, c in codes_by_cik.items() if len(c) == 1 and c[0] in wanted}
+    filer_codes = pd.DataFrame([(cik, code, len(c)) for cik, c in codes_by_cik.items() for code in c
+                                if code in wanted], columns=["cik", "code", "ticker_count"])
+    for period, quarter_end in list_quarters(int(market.history_start[:4]) - 1, date.today()):
+        key = f"frame:{period}"
+        fetched = market_store.get_fetch_time(market, key)
+        # refetch a quarter until 200 days after it ends, so late filers are included
+        if fetched and date.fromisoformat(fetched[:10]) > quarter_end + timedelta(days=200):
+            stats["skipped"] += 1
+            continue
+        try:
+            frame = sec.get_frame("dei:EntityCommonStockSharesOutstanding", "shares", period)
+        except ProviderError as exc:
+            stats["failed"].append(f"{period}: {exc}"[:160])
+            continue
+        located = frame[["cik", "loc"]].merge(filer_codes, on="cik")
+        market_store.update_filers(market, located[["code", "cik", "loc", "ticker_count"]], period)
+        frame = frame[frame["cik"].isin(single)]
+        store(pd.DataFrame({"code": frame["cik"].map(single), "date": frame["date"], "value": frame["value"]}),
+              "sec_edgar")
+        market_store.update_fetch_time(market, key)
+        stats["fetched"] += 1
+
+
+def update_yahoo_shares(market: Market, codes: list, store, stats):
+    yahoo = get_provider("yahoo")
+    fresh_after = (date.today() - timedelta(days=market.shares.get("refresh_days", 30))).isoformat()
+    for code in codes:
+        key = f"shares:{code}"
+        if (market_store.get_fetch_time(market, key) or "") > fresh_after:
+            stats["skipped"] += 1
+            continue
+        try:
+            frame = yahoo.get_shares_history(market.to_provider(code, "yahoo"), market.history_start)
+        except Exception as exc:  # yfinance raises assorted errors for symbols without data
+            stats["failed"].append(f"{code}: {exc}"[:160])
+            continue
+        frame.insert(0, "code", code)
+        store(frame, "yahoo")
+        market_store.update_fetch_time(market, key)
+        stats["fetched"] += 1
+
+
+def update_shares(market: Market, codes: list) -> dict:
+    """Share counts from each configured source; ETFs in the symbol master are skipped."""
+    master = market_store.list_symbols(market)
+    etfs = set(master.loc[master["is_etf"] == 1, "code"])
+    codes = [c for c in codes if c not in etfs and c != market.benchmark_symbol]
+    lags = market.shares.get("lag_days") or {}
+    stats = {"codes": len(codes), "rows": 0, "fetched": 0, "skipped": 0, "failed": []}
+
+    def store(frame, source):
+        lag = timedelta(days=lags.get(source, 0))
+        frame = frame.assign(available_from=[(date.fromisoformat(d) + lag).isoformat() for d in frame["date"]])
+        stats["rows"] += market_store.update_shares(market, frame, source)
+
+    updaters = {"sec_edgar": update_sec_shares, "yahoo": update_yahoo_shares}
+    for source in market.shares.get("sources") or []:
+        updaters[source](market, codes, store, stats)
+    return stats
+
+
+def update_turnover(market: Market, codes: list) -> dict:
+    """Turnover per code; with shares.domestic_only, foreign issuers and multi-class tickers get none
+    (their share count covers more than the shares traded in this market)."""
+    cache = market_store.get_bar_cache(market)
+    stats = {"codes": 0, "rows": 0, "no_shares": 0, "not_domestic": 0}
+    domestic = None
+    if market.shares.get("domestic_only"):
+        recent = date.today() - timedelta(days=730)
+        domestic = market_store.list_domestic_codes(market, f"CY{recent.year}Q1I")
+    for code in codes:
+        if domestic is not None and code not in domestic:
+            market_store.clear_turnover(market, code)
+            stats["not_domestic"] += 1
+            continue
+        counts = market_store.list_shares(market, code)
+        bars = cache.get_daily(code, adjust="split")
+        if counts.empty or bars is None:
+            stats["no_shares"] += 1
+            continue
+        resolved = resolve_share_counts(counts, market_store.list_splits(market, code))
+        stats["rows"] += market_store.update_turnover(market, code, compute_turnover(bars, resolved))
+        stats["codes"] += 1
     return stats
 
 
@@ -210,13 +364,19 @@ def update_macro(market: Market) -> dict:
 def handle_update(args) -> dict:
     market = get_market(args.market)
     universe = args.universe or market.universe.get("default", "seed")
-    is_default_run = not (args.symbols or args.bars or args.fundamentals or args.macro)
+    steps = (args.symbols, args.bars, args.full, args.shares, args.turnover, args.fundamentals, args.macro)
+    is_bars_run = args.bars or args.full or not any(steps)
     report = {"market": market.id, "universe": universe, "started_at": market_store.now_text()}
     if args.symbols:
         report["symbols"] = update_symbol_master(market)
-    codes = resolve_universe(market, universe, args.limit)
-    if args.bars or is_default_run:
-        report["bars"] = update_bars(market, codes)
+    codes = resolve_universe(market, universe, args.limit, args.stocks_only)
+    if is_bars_run:
+        report["bars"] = update_bars(market, codes, is_full_refresh=args.full)
+    if args.shares:
+        report["shares"] = update_shares(market, codes)
+    # rewritten bar rows lose their turnover, so recompute it after every bar update
+    if args.turnover or args.shares or (is_bars_run and market.shares):
+        report["turnover"] = update_turnover(market, codes)
     if args.fundamentals:
         report["fundamentals"] = update_fundamentals(market, codes)
     if args.macro:
@@ -233,8 +393,12 @@ def main():
     parser.add_argument("--market", default="US", help="market id from config/markets.yaml")
     parser.add_argument("--universe", choices=["seed", "all"], help="default: universe.default in config")
     parser.add_argument("--limit", type=int, help="cap the number of symbols (benchmark counts as one)")
+    parser.add_argument("--stocks-only", action="store_true", help="leave ETFs out of --universe all")
     parser.add_argument("--symbols", action="store_true", help="refresh the symbol master")
     parser.add_argument("--bars", action="store_true", help="update daily bars (default when no step given)")
+    parser.add_argument("--full", action="store_true", help="re-download full bar history (also splits/dividends)")
+    parser.add_argument("--shares", action="store_true", help="update share counts (then turnover)")
+    parser.add_argument("--turnover", action="store_true", help="recompute daily turnover from stored share counts")
     parser.add_argument("--fundamentals", action="store_true", help="update SEC company facts")
     parser.add_argument("--macro", action="store_true", help="update macro series")
     parser.add_argument("--status", action="store_true", help="print coverage of every market and exit")

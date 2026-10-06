@@ -64,6 +64,7 @@
 <script src="/v2/components/sidebar.js"></script>
 <script src="/v2/components/tabs.js"></script>
 <script src="/v2/components/decide.js"></script>
+<script src="/v2/components/market_desk.js"></script>
 <script>
 (function () {
   LW.sidebar.render('sidebar', {active: 'pitch'});
@@ -805,7 +806,8 @@
     { id: 'short', label: 'Pitch 短线', load: loadPitchShort },
     { id: 'etf', label: 'ETF 映射', load: loadEtfMap },
     { id: 'ref', label: '参考 · L1', load: loadReference },
-    { id: 'history', label: '历史', load: loadHistory }
+    { id: 'history', label: '历史', load: loadHistory },
+    { id: 'markets', label: 'US / MY', load: LW.marketDesk.load }
   ]);
   // #290 审批事件委托（buy/drop/undo 点击  LW.decide.approve）
   LW.decide.bind(document.getElementById('tabs-demo'));

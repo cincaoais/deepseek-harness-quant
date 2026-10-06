@@ -214,8 +214,8 @@ Windows Task Scheduler (`schtasks`) works for this; the repo ships the scripts b
 |---|---|---|
 | 0 | Run the existing system in demo mode on Windows; switch LLM if wanted; run the test calls in §3; install OpenD and confirm Moomoo API quote rights | Demo dashboard works; you know your FMP plan and Moomoo MY quote access |
 | 1 ✅ | `config/markets.yaml`, provider adapters (Yahoo, Nasdaq Trader, SEC EDGAR, FRED; EODHD ready but inactive), per-market DBs, trading calendars, `/api/markets` — see [markets-data.md](markets-data.md) | US and MY bars stored per market; SEC facts readable point-in-time |
-| 2 | `MarketRules`, `CostModel`, `UniverseFilter`; port agnostic factors and `turn_low` with computed turnover | 9-step validation re-run per market, results graded |
-| 3 | Lean US/MY scan → Pitch cards; US-specific factors (insider, short interest, PIT earnings) | `/pitch` shows US and MY cards |
+| 2 ✅ | `MarketRules` / `CostModel` (`backtest/market_rules.py`), turnover from share counts, US/MY portfolio backtest and nine-step validation (`backtest/market_validation.py`) | Done 2026-10-06; results in §10. Nothing graded above "watch" while bars lack delisted stocks |
+| 3 ✅ | US/MY decision cards (`strategy/market_pitch.py`), separate decision store and forward tracking (`strategy/market_track.py`), "US / MY" tab on `/pitch` | Done 2026-10-06; cards from factors not graded invalid; buy list = approved cards |
 | 4 | UI: market switch, currency, green-up colours; rewrite personas; new calendar/policy hypotheses | All pages 200 for both markets (AGENTS.md regression rule) |
 | 5 | Moomoo adapter: US paper → small live; MY live with one lot | Approved cards turn into orders only after RiskAgent check |
 
@@ -258,7 +258,44 @@ Malaysia (codes confirmed 2026-10-06):
 
 ---
 
-## 10. Open items to verify
+## 10. Phase 2 results (2026-10-06, Yahoo data, after costs)
+
+Setup: top 20 equal weight, rebalanced every 40 trading days; signal at close, trade at next open; moomoo MY / Bursa costs; US fractional shares, Bursa 100-share lots; liquidity floor US $5 price / $5M daily value, MY RM0.20 / RM200k. US 5,710 stocks; MY 1,069 counters. Holdout = 2023 onwards.
+
+**US** (2012–2026; SPY +15.1%/yr, Sharpe 0.94, max drawdown −34%):
+
+| Factor | Annual | Sharpe | vs SPY | IC (t) | Holdout | Grade |
+|---|---|---|---|---|---|---|
+| turn_20 low turnover (from 2016) | +11.1% | 0.65 | −4.1% | 0.020 (1.1) | +13.5% | watch |
+| near_high_250 | +12.1% | 0.68 | −2.9% | 0.026 (1.3) | +23.2% | watch |
+| mom_12_1 | +11.8% | 0.48 | −3.1% | 0.018 (1.0) | +22.0% | watch |
+| max_ret_20 (avoid lottery stocks) | +7.9% | 0.62 | −7.1% | 0.034 (2.2) | +7.4% | watch |
+| lowvol_60 | +5.8% | 0.51 | −9.2% | 0.030 (1.4) | +4.0% | watch (duplicate of max_ret_20) |
+| mom_20 reversal | +7.6% | 0.38 | −7.3% | 0.014 (1.0) | +14.7% | watch |
+| amihud_20 illiquidity | −6.1% | 0.03 | −21.1% | −0.027 | −15.7% | invalid |
+
+**Malaysia** (2012–2026; FBM KLCI +0.4%/yr, Sharpe 0.09, max drawdown -36%; 29 exchange-holiday placeholder dates removed):
+
+| Factor | Annual | Sharpe | vs KLCI | IC (t) | Holdout | Grade |
+|---|---|---|---|---|---|---|
+| near_high_250 | +25.6% | 1.41 | +25.1% | 0.149 (9.7) | +15.1% | watch |
+| mom_12_1 | +11.3% | 0.53 | +10.7% | 0.078 (5.5) | +5.0% | watch |
+| amihud_20 | +6.4% | 0.41 | +5.8% | -0.030 (-2.5) | +4.2% | invalid (IC wrong sign) |
+| lowvol_60 | +3.7% | 0.59 | +3.2% | 0.105 (5.5) | +1.7% | watch |
+| turn_20 low turnover (from mid-2023 only) | +2.1% | 0.30 | -3.2% | 0.091 (2.7) | +2.1% | watch |
+| max_ret_20 | -0.5% | -0.01 | -1.0% | 0.069 (4.3) | -2.3% | invalid |
+| mom_20 reversal | -9.8% | -0.27 | -10.3% | -0.042 (-3.1) | -7.8% | invalid |
+
+What this says:
+
+- **The A-share core does not carry over as-is.** In the US, low turnover behaves like a defensive tilt (ahead of SPY in 2016, 2018, 2022, behind in bull years) with an insignificant IC; no simple 20-stock factor portfolio beat SPY after costs. In Malaysia, turnover can only be tested from mid-2023, which is too short to judge.
+- **Malaysia rewards trend-following, not reversal**: stocks near their 52-week high and 12-month winners lead by a wide margin; short-term reversal (strong in A-shares) loses. Low volatility is a steady, modest edge (IC t-stat 5.5).
+- **Read every number as an upper bound.** Yahoo has no delisted stocks, which flatters all factors and especially trend factors. Bursa capacity is small (≈RM0.2–0.4M at 5% of traded value), fine for a retail account but the 0.2% slippage assumption may be light for small counters.
+- **Next decisive step is survivorship-free data** (EODHD ~US$20/month covers both markets): rerun the same command and see which factors keep their edge.
+
+---
+
+## 11. Open items to verify
 
 - Your FMP plan (Malaysia needs Ultimate).
 - Moomoo MY API: Malaysian quotes and historical bars (docs contradict).

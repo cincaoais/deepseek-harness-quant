@@ -41,13 +41,15 @@ def parse_eod(rows: list, splits: list):
     if df.empty:
         return None
     factor = pd.Series(1.0, index=df.index)
+    df["split"] = 0.0
     for split in splits:
         new, old = (float(x) for x in split["split"].split("/"))
         factor[df["date"] < split["date"]] *= new / old
+        df.loc[df["date"] == split["date"], "split"] = new / old
     for col in ("open", "high", "low", "close"):
         df[col] = df[col] / factor
     df = df.rename(columns={"adjusted_close": "adj_close"})
-    return df[["date", "open", "high", "low", "close", "adj_close", "volume"]]
+    return df[["date", "open", "high", "low", "close", "adj_close", "volume", "split"]]
 
 
 def list_symbols(exchange: str) -> pd.DataFrame:

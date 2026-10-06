@@ -8,6 +8,7 @@ from data.providers.base import ProviderError, get_credential, http_get
 
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
+FRAMES_URL = "https://data.sec.gov/api/xbrl/frames/{taxonomy}/{concept}/{unit}/{period}.json"
 # SEC fair-access policy allows 10 requests per second
 REQUEST_INTERVAL = 0.12
 FACT_COLUMNS = ["concept", "unit", "period_start", "period_end", "value",
@@ -47,3 +48,13 @@ def parse_company_facts(payload: dict, concepts) -> pd.DataFrame:
                 "filed": fact["filed"], "accession": fact["accn"],
             } for fact in facts)
     return pd.DataFrame(rows, columns=FACT_COLUMNS)
+
+
+def get_frame(qualified_concept: str, unit: str, period: str) -> pd.DataFrame:
+    """One value per company for a calendar period (e.g. CY2020Q2I); frames carry no filing date."""
+    taxonomy, concept = qualified_concept.split(":", 1)
+    time.sleep(REQUEST_INTERVAL)
+    url = FRAMES_URL.format(taxonomy=taxonomy, concept=concept, unit=unit, period=period)
+    rows = http_get(url, headers=get_headers()).json().get("data") or []
+    return pd.DataFrame([(r["cik"], r["end"], r["val"], r.get("loc") or "") for r in rows],
+                        columns=["cik", "date", "value", "loc"])

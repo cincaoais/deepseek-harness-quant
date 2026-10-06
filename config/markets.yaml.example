@@ -59,6 +59,53 @@ markets:
     macro:
       # CPIAUCSL and UNRATE get revised: the keyless CSV holds the latest vintage only
       series: [DGS10, DGS2, T10Y2Y, FEDFUNDS, VIXCLS, BAMLH0A0HYM2, USEPUINDXD, CPIAUCSL, UNRATE]
+    shares:                           # shares outstanding → daily turnover
+      # yahoo: per ticker from ~2015, right for ADRs and share classes
+      # sec_edgar: cover-page counts from 2009, used only for earlier years where both sources agree
+      sources: [yahoo, sec_edgar]
+      lag_days: {yahoo: 7, sec_edgar: 35}   # SEC frames carry no filing date
+      refresh_days: 30
+      reliable_from: "2016-01-01"     # turnover factors are validated from here (Yahoo history begins ~2015)
+      # ADRs/foreign issuers and multi-class tickers get no turnover: their share count covers
+      # shares that trade abroad or in another class, so turnover would read falsely low
+      domestic_only: true
+    rules:
+      lot_size: null                  # fractional shares (moomoo MY); no lot rounding
+      price_limit: null               # no daily limit (LULD pauses only)
+    costs:                            # per side, in USD; moomoo MY schedule (docs/RnD-US-Malaysia.md §1)
+      commission_pct: 0.0003
+      platform_fee: 0.99              # per order, on top of commission
+      stamp_duty_pct: 0.001           # Malaysian stamp duty on the contract note
+      stamp_duty_max: 230             # RM1,000 cap in USD; adjust when USD/MYR moves
+      sell_fee_pct: 0.0000206         # SEC Section 31 fee, sells only
+      slippage_pct: 0.0005
+    validation:                       # 9-step chain: python backtest/market_validation.py --market US
+      start: "2012-01-01"
+      holdout_start: "2023-01-01"
+      top_n: 20
+      rebalance_days: 40              # also the IC horizon
+      capital: 100000                 # drives lot rounding and minimum fees
+      participation: 0.05             # capacity: max share of a stock's daily dollar volume
+      filters: {min_price: 5, min_dollar_volume: 5000000, min_history_days: 252, exclude_etfs: true}
+      factors:                        # sign +1: higher is better, -1: lower is better
+        - {name: turn_20, sign: -1}
+        - {name: lowvol_60, sign: -1}
+        - {name: mom_20, sign: -1}
+        - {name: mom_12_1, sign: 1}
+        - {name: near_high_250, sign: 1}
+        - {name: amihud_20, sign: 1}
+        - {name: max_ret_20, sign: -1}
+    pitch:                            # decision cards: python strategy/market_pitch.py --market US
+      top_n: 10
+      capital: 100000                 # position size = capital / positions
+      positions: 10
+      stop_loss_pct: 0.15
+      # composite score = weighted mean of percentile ranks; factors graded "invalid" in the
+      # latest validation are dropped automatically (picked from the 2026-10-06 validation)
+      factors:
+        - {name: near_high_250, sign: 1, weight: 1}
+        - {name: turn_20, sign: -1, weight: 1}
+        - {name: max_ret_20, sign: -1, weight: 1}
 
   MY:
     name: Bursa Malaysia
@@ -68,15 +115,58 @@ markets:
     benchmark: {code: KLCI, yahoo: "^KLSE", eodhd: KLSE.INDX}
     providers:
       bars: yahoo                     # yahoo drops delisted counters → backtests overstate returns
-      symbols: seed                   # eodhd gives the full list incl. delisted (paid key)
+      symbols: yahoo                  # Yahoo screener, current listings | eodhd incl. delisted (paid key) | seed
     provider_symbols:
-      yahoo: {suffix: ".KL", class_separator: "-"}
+      yahoo: {suffix: ".KL", class_separator: "-", exchange: KLS}
       eodhd: {suffix: ".KLSE", class_separator: "-", exchange: KLSE}
     universe:
       default: seed
       include_etfs: true
-      exclude_name_patterns: ['\bwarrants?\b', '-W[A-Z]?$', '-C[0-9A-Z]+$']
+      code_pattern: '^\d{4}(EA)?$'    # ordinary shares, REITs, ETFs; drops warrants and structured warrants
+      exclude_name_patterns: ['\bwarrants?\b']
       # quoted so leading zeros survive (0166 = Inari Amertron)
       seed: ["1155", "1295", "1023", "5819", "1066", "5347", "6742", "6033", "5183", "8869",
              "5225", "5398", "5211", "0166", "6947", "6012", "4863", "6888", "5296", "4707",
              "2445", "1961", "5285", "4197", "3182"]
+    shares:
+      sources: [yahoo]                # Yahoo history starts in 2023; earlier dates reuse the first count
+      lag_days: {yahoo: 7}
+      refresh_days: 30
+      reliable_from: "2023-06-01"     # earlier turnover reuses a later share count → not validated
+    rules:
+      lot_size: 100
+      price_limit: {pct: 0.30, below_price: 1.0, abs: 0.30}   # ±30%, or ±30 sen under RM1
+    costs:                            # per side, in MYR; moomoo MY + Bursa (docs/RnD-US-Malaysia.md §1)
+      commission_pct: 0.0003
+      platform_fee: 3.0               # per order, on top of commission
+      clearing_pct: 0.0003
+      clearing_max: 1000
+      stamp_duty_pct: 0.001
+      stamp_duty_step: 1000           # RM1 per RM1,000 or part of it
+      stamp_duty_max: 1000
+      slippage_pct: 0.002
+    validation:
+      start: "2012-01-01"
+      holdout_start: "2023-01-01"
+      top_n: 20
+      rebalance_days: 40
+      capital: 50000
+      participation: 0.05
+      filters: {min_price: 0.20, min_dollar_volume: 200000, min_history_days: 252, exclude_etfs: true}
+      factors:
+        - {name: turn_20, sign: -1}
+        - {name: lowvol_60, sign: -1}
+        - {name: mom_20, sign: -1}
+        - {name: mom_12_1, sign: 1}
+        - {name: near_high_250, sign: 1}
+        - {name: amihud_20, sign: 1}
+        - {name: max_ret_20, sign: -1}
+    pitch:
+      top_n: 10
+      capital: 50000
+      positions: 10
+      stop_loss_pct: 0.15
+      factors:
+        - {name: near_high_250, sign: 1, weight: 1}
+        - {name: mom_12_1, sign: 1, weight: 1}
+        - {name: lowvol_60, sign: -1, weight: 1}

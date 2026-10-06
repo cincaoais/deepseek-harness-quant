@@ -30,6 +30,11 @@ class Market:
     universe: dict
     fundamentals: dict
     macro: dict
+    shares: dict
+    rules: dict
+    costs: dict
+    validation: dict
+    pitch: dict
     data_dir: Path
 
     @property
@@ -78,6 +83,11 @@ def parse_market(market_id: str, block: dict) -> Market:
         universe=block.get("universe") or {},
         fundamentals=block.get("fundamentals") or {},
         macro=block.get("macro") or {},
+        shares=block.get("shares") or {},
+        rules=block.get("rules") or {},
+        costs=block.get("costs") or {},
+        validation=block.get("validation") or {},
+        pitch=block.get("pitch") or {},
         data_dir=CACHE_DIR / "markets" / market_id.lower(),
     )
 
@@ -88,6 +98,15 @@ def get_market(market_id: str) -> Market:
     if key not in markets:
         raise KeyError(f"market {key!r} not in config/markets.yaml (configured: {sorted(markets)})")
     return markets[key]
+
+
+def list_sessions(market: Market, start: str, end: str) -> set:
+    """Exchange sessions (YYYY-MM-DD) between start and end, clipped to the calendar's range."""
+    import exchange_calendars as xcals
+
+    cal = xcals.get_calendar(market.calendar)
+    first, last = max(pd.Timestamp(start), cal.first_session), min(pd.Timestamp(end), cal.last_session)
+    return set(cal.sessions_in_range(first, last).strftime("%Y-%m-%d")) if first <= last else set()
 
 
 def get_last_closed_session(market: Market, now=None) -> str:

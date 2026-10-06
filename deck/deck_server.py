@@ -272,6 +272,27 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({"harness": {"online": False}, "error": "harness_state.json 未生成"}, 404)
             except Exception as e:
                 return self._send_json({"error": str(e)}, 500)
+        if path == "/api/markets/desk":   # US / MY decision desk: cards, decisions, buy list, tracking
+            try:
+                if str(BASE) not in sys.path:
+                    sys.path.insert(0, str(BASE))
+                from urllib.parse import parse_qs, urlparse
+                from data.markets import get_market
+                from strategy.market_track import build_desk
+                market_id = (parse_qs(urlparse(self.path).query).get("market") or ["US"])[0]
+                return self._send_json({"ok": True, **build_desk(get_market(market_id))})
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
+        if path == "/api/markets/validation":   # latest US / Bursa factor validation (backtest/market_validation.py)
+            try:
+                if str(BASE) not in sys.path:
+                    sys.path.insert(0, str(BASE))
+                from backtest.market_validation import get_latest_report
+                from data.markets import list_markets
+                reports = [get_latest_report(mid) for mid in list_markets()]
+                return self._send_json({"ok": True, "results": [r for r in reports if r]})
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
         if path == "/api/markets":   # US / Bursa Malaysia data coverage (config/markets.yaml, data/market_update.py)
             try:
                 if str(BASE) not in sys.path:
@@ -846,6 +867,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json(start())
             except Exception as e:
                 return self._send_json({"error": str(e)}, 500)
+        if path == "/api/markets/decide":   # US / MY card approval (strategy/market_track.py, not the A-share holdings)
+            try:
+                rec = self._read_json()
+                if str(BASE) not in sys.path:
+                    sys.path.insert(0, str(BASE))
+                from data.markets import get_market
+                from strategy.market_track import update_card_decision
+                result = update_card_decision(get_market(str(rec.get("market", ""))), str(rec.get("code", "")),
+                                              str(rec.get("action", "")), str(rec.get("note") or ""))
+                return self._send_json({"ok": True, **result})
+            except (KeyError, ValueError) as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 400)
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
         if path == "/api/decide":
             try:
                 rec = self._read_json()
