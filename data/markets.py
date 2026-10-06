@@ -35,6 +35,7 @@ class Market:
     costs: dict
     validation: dict
     pitch: dict
+    positions: dict
     data_dir: Path
 
     @property
@@ -88,6 +89,7 @@ def parse_market(market_id: str, block: dict) -> Market:
         costs=block.get("costs") or {},
         validation=block.get("validation") or {},
         pitch=block.get("pitch") or {},
+        positions=block.get("positions") or {},
         data_dir=CACHE_DIR / "markets" / market_id.lower(),
     )
 

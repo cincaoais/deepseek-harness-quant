@@ -1,6 +1,6 @@
-# US and Bursa Malaysia: data, validation and decision cards
+# US and Bursa Malaysia: data, validation, decision cards and holdings
 
-Phases 1–3 of [RnD-US-Malaysia.md](RnD-US-Malaysia.md). Fetches and stores US and Malaysian market data next to the A-share data, runs the project's nine-step factor validation with each market's own trading rules and costs, and turns the surviving factors into decision cards on the `/pitch` page ("US / MY" tab). The A-share system is not touched.
+Phases 1–4a of [RnD-US-Malaysia.md](RnD-US-Malaysia.md). Fetches and stores US and Malaysian market data next to the A-share data, runs the project's nine-step factor validation with each market's own trading rules and costs, and turns the surviving factors into decision cards on the `/pitch` page ("US / MY" tab). The A-share system is not touched.
 
 ## What it does
 
@@ -138,9 +138,32 @@ python strategy\market_pitch.py --market MY
 - **Decisions:** Buy / Drop / Undo on the tab call `POST /api/markets/decide`; only codes on the latest cards are accepted. The **buy list is the approved cards** (same rule as A-shares: no second recommendation path). A buy while L0 says "no new positions" asks for confirmation.
 - **Kept apart from A-shares:** US/MY decisions and tracking live in `output/market_desk/`, not in the A-share holdings (≤5 positions) or the A-share forward pools, which read A-share prices.
 - **Forward tracking:** every card enters `auto_pitch`; approved buys move to `human_select`. Each run fills T+1/5/20/60 returns measured from the open after the signal.
-- **There is no order routing yet**: place approved orders yourself at the next session open (moomoo). Broker automation is Phase 5.
+- **There is no order routing yet**: place approved orders yourself at the next session open (moomoo), then press **Record fill** on the buy list. Broker automation is Phase 5.
 
 APIs: `/api/markets/desk?market=US` (cards, decisions, buy list, tracking), `POST /api/markets/decide` `{market, code, action: buy|drop|undo}`.
+
+## Holdings and exit checks
+
+```bat
+python strategy\market_positions.py --market US     :: holdings, P&L and exit alerts (also run by market_daily.cmd)
+```
+
+- **Ledger:** `output/market_desk/<market>_positions.json`, separate from the A-share portfolio. Record a fill from the buy list ("Record fill") or on the holdings page (code, shares, price, optional date and fees). Fees default to the broker/exchange schedule without the backtest's slippage. Close a position with its sell price; Delete only fixes a mistaken entry.
+- **Marks:** latest unadjusted close. A split after entry restates entry price and shares on today's basis, so P&L stays right. Dividends are not booked yet.
+- **Exit alerts** (alerts only, you decide): `risk/stop_rules.py` with `positions.stop_rules` from config: hard stop (`stop_loss_pct`, also the stop shown on cards), drawdown from the peak close, take-profit levels; plus the **rebalance exit** the validation tested: after `rebalance_days` sessions a stock that is no longer on the cards should be sold.
+
+## Pages
+
+| Page | US / MY section |
+|---|---|
+| `/` portal, `/report` | one row per market: data date, L0 regime, cards, buy list, holdings value and P&L, exit alerts, validation grades |
+| `/pitch` | "US / MY" tab: cards, buy / drop / undo, buy list with Record fill, factor evidence, forward tracking |
+| `/holdings` | market switch: open positions with P&L and exit alerts, record / close / delete, closed positions |
+| `/factors` | "US / MY" tab: validation table (grade, return, Sharpe, drawdown, excess, IC, holdout, capacity) and excess return by year |
+| `/backtest` | equity curves of the validated factor portfolios vs SPY / KLCI (log scale, after costs) |
+| `/data` | coverage per market: bars, symbol master, share counts, turnover, SEC facts, macro, bars source |
+
+APIs: `/api/markets/overview`, `/api/markets/positions?market=US` (GET), `POST /api/markets/positions` `{market, action: open|close|delete, …}`.
 
 ## Tests
 

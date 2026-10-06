@@ -36,6 +36,13 @@ DUPLICATE_CORR = 0.7
 CAPACITY_QUANTILE = 0.1
 
 
+def build_monthly_nav(returns: pd.Series) -> list:
+    """[["YYYY-MM", nav], ...] at each month end, starting from 1.0."""
+    nav = (1 + returns).cumprod()
+    monthly = nav.groupby(nav.index.str[:7]).last()
+    return [[m, round(float(v), 4)] for m, v in monthly.items()]
+
+
 def summarize_ic(ic: pd.Series) -> dict:
     if ic.empty:
         return {"mean": None, "icir": None, "t_stat": None, "positive_ratio": None, "n": 0, "by_year": {}}
@@ -155,6 +162,7 @@ def run_validation(market: Market, factor_names=None) -> dict:
             "by_year": summary["by_year"], "excess_by_year": summary["excess_by_year"],
             **split_holdout(port["returns"], ic, cfg.get("holdout_start", "2023-01-01")),
             "capacity": compute_capacity(panel, port["picks"], cfg.get("participation", 0.05), top_n),
+            "nav_monthly": build_monthly_nav(port["returns"]),
         }
         scores_on_dates[name] = score.loc[grid]
         excess[name] = port["returns"] - bench.reindex(port["returns"].index).fillna(0)
@@ -167,7 +175,8 @@ def run_validation(market: Market, factor_names=None) -> dict:
         "market": market.id, "currency": market.currency, "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "params": {**{k: v for k, v in cfg.items() if k != "factors"}, "universe_codes": len(codes)},
         "data_notes": build_data_notes(market, is_safe, reliable_from),
-        "benchmark": {"code": market.benchmark_symbol, **compute_metrics(to_dated(bench.loc[cfg["start"]:]))},
+        "benchmark": {"code": market.benchmark_symbol, **compute_metrics(to_dated(bench.loc[cfg["start"]:])),
+                      "nav_monthly": build_monthly_nav(bench.loc[cfg["start"]:])},
         "factors": results,
         "elapsed_s": round(time.time() - t0, 1),
     }

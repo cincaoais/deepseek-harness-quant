@@ -28,6 +28,7 @@
 <div id="sidebar"></div>
 <div class="v2-wrap">
   <div class="v2-h"><span class="bar"></span><h1>数据</h1><span class="sub">持仓复盘 · 因子实战库 · 加权结果 · 数据资产</span></div>
+  <div id="markets-view"></div>
 
   <!-- ★#332 持仓复盘（当前持仓 + 止盈 + 历史决策，方便复盘） -->
   <div class="v2-card anim-fade-in-up" style="margin-top:14px">
@@ -224,5 +225,7 @@
   });
 })();
 </script>
+<script src="/v2/components/market_views.js"></script>
+<script>LW.marketViews.mount('markets-view', 'coverage');</script>
 </body>
 </html>

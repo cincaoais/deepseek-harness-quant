@@ -213,6 +213,15 @@ class Handler(BaseHTTPRequestHandler):
         f = BASE / "ui_v2" / "pages" / name
         return self._send(200, f.read_bytes() if f.exists() else missing_txt.encode("utf-8"), "text/html; charset=utf-8")
 
+    def _market(self):
+        """Market from ?market= (default US), for the US / MY routes."""
+        import urllib.parse
+        if str(BASE) not in sys.path:
+            sys.path.insert(0, str(BASE))
+        from data.markets import get_market
+        query = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+        return get_market((query.get("market") or ["US"])[0])
+
     def _read_json(self):
         n = int(self.headers.get("Content-Length") or 0)
         if n <= 0:
@@ -274,13 +283,25 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({"error": str(e)}, 500)
         if path == "/api/markets/desk":   # US / MY decision desk: cards, decisions, buy list, tracking
             try:
+                market = self._market()
+                from strategy.market_track import build_desk
+                return self._send_json({"ok": True, **build_desk(market)})
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
+        if path == "/api/markets/positions":   # US / MY holdings with marks and exit alerts
+            try:
+                market = self._market()
+                from strategy.market_positions import build_book
+                return self._send_json({"ok": True, **build_book(market)})
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
+        if path == "/api/markets/overview":   # one row per market for the portal and report pages
+            try:
                 if str(BASE) not in sys.path:
                     sys.path.insert(0, str(BASE))
-                from urllib.parse import parse_qs, urlparse
-                from data.markets import get_market
-                from strategy.market_track import build_desk
-                market_id = (parse_qs(urlparse(self.path).query).get("market") or ["US"])[0]
-                return self._send_json({"ok": True, **build_desk(get_market(market_id))})
+                from data.markets import list_markets
+                from strategy.market_overview import build_overview
+                return self._send_json({"ok": True, "results": [build_overview(m) for m in list_markets().values()]})
             except Exception as e:
                 return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
         if path == "/api/markets/validation":   # latest US / Bursa factor validation (backtest/market_validation.py)
@@ -867,6 +888,29 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json(start())
             except Exception as e:
                 return self._send_json({"error": str(e)}, 500)
+        if path == "/api/markets/positions":   # US / MY fills: open / close / delete (strategy/market_positions.py)
+            try:
+                rec = self._read_json()
+                if str(BASE) not in sys.path:
+                    sys.path.insert(0, str(BASE))
+                from data.markets import get_market
+                from strategy import market_positions as mp
+                market, action = get_market(str(rec.get("market", ""))), rec.get("action")
+                if action == "open":
+                    result = mp.create_position(market, rec.get("code", ""), rec.get("shares", 0), rec.get("price", 0),
+                                                rec.get("date"), rec.get("fees"), str(rec.get("note") or ""))
+                elif action == "close":
+                    result = mp.close_position(market, str(rec.get("id", "")), rec.get("price", 0), rec.get("date"),
+                                               rec.get("fees"), str(rec.get("reason") or "manual"))
+                elif action == "delete":
+                    result = mp.delete_position(market, str(rec.get("id", "")))
+                else:
+                    raise ValueError("action must be open, close or delete")
+                return self._send_json({"ok": True, "position": result})
+            except (KeyError, TypeError, ValueError) as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 400)
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
         if path == "/api/markets/decide":   # US / MY card approval (strategy/market_track.py, not the A-share holdings)
             try:
                 rec = self._read_json()

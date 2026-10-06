@@ -1,24 +1,13 @@
 /* ui_v2/components/market_desk.js — US / Bursa Malaysia decision desk (the /pitch "US / MY" tab).
    Data: /api/markets (market list) and /api/markets/desk?market=ID (cards, decisions, buy list, tracking).
-   Actions: POST /api/markets/decide {market, code, action}; the buy list is the approved cards only.
+   Actions: POST /api/markets/decide {market, code, action}; the buy list is the approved cards only;
+   "Record fill" posts the executed buy to /api/markets/positions. Needs market_views.js loaded first.
    Usage: LW.marketDesk.load(box) as a tab loader. */
 (function () {
   'use strict';
   window.LW = window.LW || {};
   var current = null;
-
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function num(v, digits) { return v == null ? '–' : (+v).toLocaleString(undefined, { maximumFractionDigits: digits }); }
-  function pct(v) {
-    if (v == null) return '<span style="opacity:.5">–</span>';
-    var color = v > 0 ? '#22c55e' : (v < 0 ? '#ef4444' : 'inherit');   // these markets show gains in green
-    return '<span style="color:' + color + '">' + (v > 0 ? '+' : '') + (v * 100).toFixed(1) + '%</span>';
-  }
-  function toast(msg) { if (LW.decide && LW.decide.toast) LW.decide.toast(msg); else window.alert(msg); }
+  var fmt = LW.marketViews.fmt, esc = fmt.esc, num = fmt.num, pct = fmt.pct, toast = fmt.toast;
 
   function renderHeader(d) {
     var c = d.cards, r = c.regime || {};
@@ -34,10 +23,12 @@
   function renderBuyList(d) {
     var rows = d.buy_list.map(function (c) {
       return '<tr><td>' + esc(c.code) + '</td><td>' + esc(c.name) + '</td><td>' + num(c.position.shares, 4) +
-        '</td><td>' + num(c.position.value, 0) + '</td><td>' + num(c.price, 4) + '</td><td>' + num(c.stop.price, 4) + '</td></tr>';
+        '</td><td>' + num(c.position.value, 0) + '</td><td>' + num(c.price, 4) + '</td><td>' + num(c.stop.price, 4) +
+        '</td><td><button class="v2-btn md-fill" data-code="' + esc(c.code) + '" data-shares="' + c.position.shares +
+        '" data-price="' + c.price + '">Record fill</button></td></tr>';
     }).join('');
-    return '<div class="v2-card"><h2>Buy list <span class="tag">approved cards · ' + d.buy_list.length + '</span></h2>' +
-      (rows ? '<table><thead><tr><th>Code</th><th>Name</th><th>Shares</th><th>Value</th><th>Last close</th><th>Stop</th></tr></thead><tbody>' +
+    return '<div class="v2-card"><h2>Buy list <span class="tag">approved cards · ' + d.buy_list.length + ' · record the fill once bought</span></h2>' +
+      (rows ? '<table><thead><tr><th>Code</th><th>Name</th><th>Shares</th><th>Value</th><th>Last close</th><th>Stop</th><th></th></tr></thead><tbody>' +
         rows + '</tbody></table>' : '<div class="mini" style="opacity:.6">Nothing approved for this card date.</div>') + '</div>';
   }
 
@@ -117,6 +108,19 @@
     }).catch(function (e) { toast('server unreachable: ' + e); });
   }
 
+  function recordFill(box, b) {
+    var price = window.prompt('Fill price for ' + b.getAttribute('data-code'), b.getAttribute('data-price'));
+    if (!price) return;
+    var shares = window.prompt('Shares bought', b.getAttribute('data-shares'));
+    if (!shares) return;
+    fetch('/api/markets/positions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ market: current, action: 'open', code: b.getAttribute('data-code'), shares: shares, price: price })
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      toast(res.ok ? 'Recorded ' + res.position.code + ' in holdings' : (res.message || 'failed'));
+    }).catch(function (e) { toast('server unreachable: ' + e); });
+  }
+
   function load(box) {
     LW.api.get('/api/markets').then(function (d) {
       var markets = (d && d.results) || [];
@@ -127,7 +131,7 @@
       sw.innerHTML = markets.map(function (m) {
         var on = m.id === current;
         return '<button class="v2-btn md-market" data-market="' + esc(m.id) + '" style="' +
-          (on ? 'background:#e4e4e7;color:#111114' : 'opacity:.7') + '">' + esc(m.name) + ' · ' + esc(m.bars.last_date || 'no data') + '</button>';
+          LW.marketViews.buttonStyle(on) + '">' + esc(m.name) + ' · ' + esc(m.bars.last_date || 'no data') + '</button>';
       }).join('');
       if (!box._mdBound) {
         box._mdBound = true;
@@ -136,6 +140,8 @@
           if (m) { current = m.getAttribute('data-market'); load(box); return; }
           var b = ev.target.closest('.md-act');
           if (b) decide(box, b.getAttribute('data-code'), b.getAttribute('data-act'));
+          var f = ev.target.closest('.md-fill');
+          if (f) recordFill(box, f);
         });
       }
       renderDesk(box);

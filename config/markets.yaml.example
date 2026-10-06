@@ -99,13 +99,16 @@ markets:
       top_n: 10
       capital: 100000                 # position size = capital / positions
       positions: 10
-      stop_loss_pct: 0.15
       # composite score = weighted mean of percentile ranks; factors graded "invalid" in the
       # latest validation are dropped automatically (picked from the 2026-10-06 validation)
       factors:
         - {name: near_high_250, sign: 1, weight: 1}
         - {name: turn_20, sign: -1, weight: 1}
         - {name: max_ret_20, sign: -1, weight: 1}
+    positions:                        # holdings ledger and daily exit checks (strategy/market_positions.py)
+      # risk/stop_rules.py thresholds; the card stop uses stop_loss_pct. Only the hard stop and the
+      # rebalance exit match the validated strategy; drawdown and take-profit are extra alerts.
+      stop_rules: {stop_loss_pct: 0.15, high_drawdown_exit: 0.25, profit_take_low: 0.50, profit_take_high: 1.00}
 
   MY:
     name: Bursa Malaysia
@@ -165,8 +168,11 @@ markets:
       top_n: 10
       capital: 50000
       positions: 10
-      stop_loss_pct: 0.15
       factors:
         - {name: near_high_250, sign: 1, weight: 1}
         - {name: mom_12_1, sign: 1, weight: 1}
         - {name: lowvol_60, sign: -1, weight: 1}
+    positions:                        # holdings ledger and daily exit checks (strategy/market_positions.py)
+      # risk/stop_rules.py thresholds; the card stop uses stop_loss_pct. Only the hard stop and the
+      # rebalance exit match the validated strategy; drawdown and take-profit are extra alerts.
+      stop_rules: {stop_loss_pct: 0.15, high_drawdown_exit: 0.25, profit_take_low: 0.50, profit_take_high: 1.00}

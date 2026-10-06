@@ -216,7 +216,8 @@ Windows Task Scheduler (`schtasks`) works for this; the repo ships the scripts b
 | 1 ✅ | `config/markets.yaml`, provider adapters (Yahoo, Nasdaq Trader, SEC EDGAR, FRED; EODHD ready but inactive), per-market DBs, trading calendars, `/api/markets` — see [markets-data.md](markets-data.md) | US and MY bars stored per market; SEC facts readable point-in-time |
 | 2 ✅ | `MarketRules` / `CostModel` (`backtest/market_rules.py`), turnover from share counts, US/MY portfolio backtest and nine-step validation (`backtest/market_validation.py`) | Done 2026-10-06; results in §10. Nothing graded above "watch" while bars lack delisted stocks |
 | 3 ✅ | US/MY decision cards (`strategy/market_pitch.py`), separate decision store and forward tracking (`strategy/market_track.py`), "US / MY" tab on `/pitch` | Done 2026-10-06; cards from factors not graded invalid; buy list = approved cards |
-| 4 | UI: market switch, currency, green-up colours; rewrite personas; new calendar/policy hypotheses | All pages 200 for both markets (AGENTS.md regression rule) |
+| 4a ✅ | US/MY holdings ledger with split-aware marks and exit alerts (`strategy/market_positions.py`); US/MY sections on portal, holdings, factors, backtest, data and report pages; USD/MYR, green-up | Done 2026-10-06 |
+| 4b/4c | Personas for US/MY; factor-mining skill reads market rules; calendar, insider, short-interest, earnings and Malaysian macro hypotheses; Shariah and PN17/GN3 filters; L0 thresholds per market | Each hypothesis graded by the nine-step chain |
 | 5 | Moomoo adapter: US paper → small live; MY live with one lot | Approved cards turn into orders only after RiskAgent check |
 
 ---

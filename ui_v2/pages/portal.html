@@ -80,6 +80,7 @@
 <div id="sidebar"></div>
 <div class="v2-wrap">
   <div class="v2-h"><span class="bar"></span><h1>门户</h1><span class="sub">市场环境 · 择时 · 持仓全景</span></div>
+  <div id="markets-view"></div>
 
   <!-- 今日摘要条 -->
   <div class="v2-summary anim-fade-in-up" id="summary-box">
@@ -634,5 +635,7 @@
   };
 })();
 </script>
+<script src="/v2/components/market_views.js"></script>
+<script>LW.marketViews.mount('markets-view', 'overview');</script>
 </body>
 </html>

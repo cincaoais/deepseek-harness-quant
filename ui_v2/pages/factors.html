@@ -87,6 +87,7 @@
 <script src="/v2/components/search.js"></script>
 <script src="/v2/components/sidebar.js"></script>
 <script src="/v2/components/tabs.js"></script>
+<script src="/v2/components/market_views.js"></script>
 <script>
 (function () {
   LW.sidebar.render('sidebar', {active: 'factors'});
@@ -663,7 +664,8 @@
     { id: 'life', label: '生命周期', load: loadLifecycle },
     { id: 'corr', label: '相关性', load: loadCorr },
     { id: 'perf', label: '推荐质量', load: loadPerf },
-    { id: 'rank', label: '综合排名', load: loadRanking }
+    { id: 'rank', label: '综合排名', load: loadRanking },
+    { id: 'markets', label: 'US / MY', load: function (box) { LW.marketViews.render(box, 'validation'); } }
   ]);
   // ★#360 回到页面时刷新（因子池 18:30/19:00 链更新后切回自动见最新，替代定时轮询）
   document.addEventListener('visibilitychange', function () {

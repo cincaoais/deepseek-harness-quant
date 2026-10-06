@@ -91,7 +91,7 @@ def build_cards(market: Market) -> dict:
     signal_date = panel["close"].index[-1]
     scores = compute_scores(panel, mask.iloc[-1], factors).head(market.pitch.get("top_n", 10))
     names = market_store.list_symbols(market).set_index("code")["name"].to_dict()
-    stop_pct = market.pitch.get("stop_loss_pct", 0.15)
+    stop_pct = market.positions.get("stop_rules", {}).get("stop_loss_pct", 0.15)
     cards = []
     for rank, (code, row) in enumerate(scores.iterrows(), start=1):
         price = float(panel["raw_close"].at[signal_date, code])

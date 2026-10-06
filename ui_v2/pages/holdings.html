@@ -40,6 +40,7 @@
 <div id="sidebar"></div>
 <div class="v2-wrap">
   <div class="v2-h"><span class="bar"></span><h1>持仓</h1><span class="sub">绩效 · 状态机分组（持有→预警→触发/止盈→卖出）· 信号详情内嵌 </span></div>
+  <div id="markets-view"></div>
 
   <!-- KPI 区 -->
   <div class="v2-kpi anim-stagger" id="kpi-box"></div>
@@ -358,5 +359,7 @@
   setInterval(loadAll, 60000);
 })();
 </script>
+<script src="/v2/components/market_views.js"></script>
+<script>LW.marketViews.mount('markets-view', 'holdings');</script>
 </body>
 </html>
