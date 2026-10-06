@@ -16,5 +16,11 @@ numpy>=1.26
 pandas>=2.2
 pyyaml>=6.0                # 读取 config/params.yaml
 
+# ---- US / Bursa Malaysia（config/markets.yaml）----
+requests>=2.31             # SEC EDGAR / FRED / Nasdaq Trader / EODHD
+yfinance>=1.7              # Yahoo 日线（US + .KL）
+exchange_calendars>=4.5    # 交易日历 XNYS / XKLS
+
 # ---- 可选 ----
 matplotlib>=3.8            # 图表
+pytest>=8                  # 单元测试（tests/）

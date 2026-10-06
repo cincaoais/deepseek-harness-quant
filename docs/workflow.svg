@@ -1,0 +1,378 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1947" viewBox="0 0 2000 1947" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Hiragino Sans GB', sans-serif">
+<defs>
+<marker id="ah-0f766e" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0f766e"/></marker>
+<marker id="ah-c2410c" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#c2410c"/></marker>
+<marker id="ah-9ca3af" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#9ca3af"/></marker>
+<marker id="ah-2563eb" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2563eb"/></marker>
+<marker id="ah-7c3aed" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#7c3aed"/></marker>
+<marker id="ah-334155" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker>
+</defs>
+<rect width="2000" height="1947" fill="#f6f7f9"/>
+<text x="40.0" y="56.0" font-size="32" font-weight="800" fill="#111827" text-anchor="start"  xml:space="preserve">DeepSeek HARNESS Quant — how the whole system runs</text>
+<text x="40.0" y="88.0" font-size="16" font-weight="400" fill="#6b7280" text-anchor="start"  xml:space="preserve">Low-frequency China A-share quant research desk · the AI layer drives, a deterministic Python engine decides, local data is the judge · the AI never predicts individual stocks</text>
+<text x="1960.0" y="56.0" font-size="13" font-weight="400" fill="#6b7280" text-anchor="end"  xml:space="preserve">v1.0.9 · drawn from the repo source</text>
+<rect x="40" y="110" width="430" height="90" rx="10" fill="#f5f9ff" stroke="#2563eb" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="110" width="6" height="90" rx="3" fill="#2563eb"/>
+<text x="60.0" y="143.0" font-size="16" font-weight="700" fill="#2563eb" text-anchor="start"  xml:space="preserve">FACT LAYER · data</text>
+<text x="60.0" y="167.0" font-size="14" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Point-in-time, T+1, coverage checked per year</text>
+<text x="60.0" y="187.0" font-size="14" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Falsifiable: the data is the judge</text>
+<rect x="545" y="110" width="890" height="90" rx="10" fill="#f3fbf9" stroke="#0f766e" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="545" y="110" width="6" height="90" rx="3" fill="#0f766e"/>
+<text x="565.0" y="143.0" font-size="16" font-weight="700" fill="#0f766e" text-anchor="start"  xml:space="preserve">EXECUTION LAYER · fixed Python engine</text>
+<text x="565.0" y="167.0" font-size="14" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Scoring · scanning · backtest · risk — deterministic and reproducible</text>
+<text x="565.0" y="187.0" font-size="14" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Same inputs → same outputs. Runs fine with no AI at all.</text>
+<rect x="1495" y="110" width="465" height="90" rx="10" fill="#f8f5ff" stroke="#7c3aed" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="1495" y="110" width="6" height="90" rx="3" fill="#7c3aed"/>
+<text x="1515.0" y="143.0" font-size="16" font-weight="700" fill="#7c3aed" text-anchor="start"  xml:space="preserve">DRIVE LAYER · language model (optional)</text>
+<text x="1515.0" y="167.0" font-size="14" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Control · factor mining · audits · 牛散 personas</text>
+<text x="1515.0" y="187.0" font-size="14" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Proposes; everything it adds must pass the engine</text>
+<text x="40.0" y="232.0" font-size="13" font-weight="800" fill="#6b7280" text-anchor="start" letter-spacing="0.6" xml:space="preserve">① DATA SOURCES · outside your machine</text>
+<text x="545.0" y="232.0" font-size="13" font-weight="800" fill="#6b7280" text-anchor="start" letter-spacing="0.6" xml:space="preserve">② – ⑩ THE ENGINE · runs locally (python launcher.py)</text>
+<text x="1495.0" y="232.0" font-size="13" font-weight="800" fill="#6b7280" text-anchor="start" letter-spacing="0.6" xml:space="preserve">AI LAYER · needs Node 18+ and a DeepSeek key</text>
+<rect x="40" y="250" width="430" height="134" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="250" width="6" height="134" rx="3" fill="#475569"/>
+<text x="60.0" y="283.0" font-size="17" font-weight="700" fill="#475569" text-anchor="start"  xml:space="preserve">Tushare Pro</text>
+<rect x="375.4" y="264" width="82.6" height="22" rx="11" fill="#dc2626"/>
+<text x="416.7" y="279.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">CN account</text>
+<text x="60.0" y="307.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">api.tushare.pro · token in config/params.yaml</text>
+<text x="60.0" y="328.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Daily bars, full financial statements with</text>
+<text x="60.0" y="349.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">announcement dates, Dragon-Tiger list, ST list</text>
+<text x="60.0" y="370.0" font-size="14" font-weight="400" fill="#6b7280" text-anchor="start" font-style="italic"  xml:space="preserve">Main source; points tier decides which APIs work</text>
+<rect x="40" y="396" width="430" height="71" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="396" width="6" height="71" rx="3" fill="#475569"/>
+<text x="60.0" y="429.0" font-size="17" font-weight="700" fill="#475569" text-anchor="start"  xml:space="preserve">Tushare backup mirror</text>
+<rect x="381.9" y="410" width="76.1" height="22" rx="11" fill="#dc2626"/>
+<text x="420.0" y="425.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">CN vendor</text>
+<text x="60.0" y="453.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Paid 3rd-party HTTP mirror (X-API-Key), failover</text>
+<rect x="40" y="479" width="430" height="71" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="479" width="6" height="71" rx="3" fill="#475569"/>
+<text x="60.0" y="512.0" font-size="17" font-weight="700" fill="#475569" text-anchor="start"  xml:space="preserve">Baostock</text>
+<rect x="381.9" y="493" width="76.1" height="22" rx="11" fill="#d97706"/>
+<text x="420.0" y="508.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">CN-hosted</text>
+<text x="60.0" y="536.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Free, no sign-up · daily bars main source, ST flags</text>
+<rect x="40" y="562" width="430" height="176" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="562" width="6" height="176" rx="3" fill="#475569"/>
+<text x="60.0" y="595.0" font-size="17" font-weight="700" fill="#475569" text-anchor="start"  xml:space="preserve">AkShare → Chinese finance sites</text>
+<rect x="381.9" y="576" width="76.1" height="22" rx="11" fill="#d97706"/>
+<text x="420.0" y="591.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">CN-hosted</text>
+<text x="60.0" y="619.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Sina: backup daily bars, live market snapshot,</text>
+<text x="60.0" y="640.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">1-min bars for the call auction, ETF history</text>
+<text x="60.0" y="661.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Tonghuashun (10jqka): free financial summaries</text>
+<text x="60.0" y="682.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Eastmoney: earnings forecasts, institutional</text>
+<text x="60.0" y="703.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">visits, analyst consensus, CN/US bond yields</text>
+<text x="60.0" y="724.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Macro: China total social financing</text>
+<rect x="40" y="750" width="430" height="71" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="750" width="6" height="71" rx="3" fill="#475569"/>
+<text x="60.0" y="783.0" font-size="17" font-weight="700" fill="#475569" text-anchor="start"  xml:space="preserve">JQData 聚宽 (trial)</text>
+<rect x="375.4" y="764" width="82.6" height="22" rx="11" fill="#dc2626"/>
+<text x="416.7" y="779.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">CN account</text>
+<text x="60.0" y="807.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Minute bars, SW industries · cross-check only</text>
+<rect x="40" y="833" width="430" height="92" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="833" width="6" height="92" rx="3" fill="#475569"/>
+<text x="60.0" y="866.0" font-size="17" font-weight="700" fill="#475569" text-anchor="start"  xml:space="preserve">Minute-bar 7z bundles</text>
+<rect x="381.9" y="847" width="76.1" height="22" rx="11" fill="#dc2626"/>
+<text x="420.0" y="862.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">CN vendor</text>
+<text x="60.0" y="890.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Private A-share minute data you buy and drop</text>
+<text x="60.0" y="911.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">into data/minute/download → minute.db</text>
+<rect x="40" y="937" width="430" height="71" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="937" width="6" height="71" rx="3" fill="#475569"/>
+<text x="60.0" y="970.0" font-size="17" font-weight="700" fill="#475569" text-anchor="start"  xml:space="preserve">FRED · China EPU index</text>
+<rect x="405.2" y="951" width="52.8" height="22" rx="11" fill="#15803d"/>
+<text x="431.6" y="966.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">Global</text>
+<text x="60.0" y="994.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Economic-policy-uncertainty series, no key</text>
+<rect x="545" y="250" width="890" height="176" rx="10" fill="#f5f9ff" stroke="#2563eb" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="545" y="250" width="6" height="176" rx="3" fill="#2563eb"/>
+<text x="565.0" y="283.0" font-size="17" font-weight="700" fill="#2563eb" text-anchor="start"  xml:space="preserve">② Fetch &amp; store — data/</text>
+<text x="565.0" y="307.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">fetcher_tushare · fetcher_baostock · fetcher_akshare · fetcher_jqdata · incremental_daily · ingest_minute</text>
+<text x="565.0" y="328.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Network code only writes the local cache; strategy and backtest code only ever read it.</text>
+<text x="565.0" y="349.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">SQLite in LWQUANT_CACHE_DIR: bars.db · bars_incr.db · stock_basic.db · finance*.db · hist_mv.db</text>
+<text x="565.0" y="370.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">lhb_full.db (Dragon-Tiger) · gdhs_full.db (shareholder counts) · minute.db · macro.db</text>
+<rect x="559" y="375" width="862" height="23" rx="5" fill="#2563eb" fill-opacity="0.12"/>
+<text x="567.0" y="391.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">data/cache.py is the only read interface (merges main + incremental DB, point-in-time)</text>
+<text x="565.0" y="412.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">health_check · data_audit · pipeline_health → duplicate / missing / dirty rows reported</text>
+<rect x="545" y="462" width="890" height="134" rx="10" fill="#f3fbf9" stroke="#0f766e" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="545" y="462" width="6" height="134" rx="3" fill="#0f766e"/>
+<text x="565.0" y="495.0" font-size="17" font-weight="700" fill="#0f766e" text-anchor="start"  xml:space="preserve">③ Factor engine &amp; factor pool — factors/</text>
+<rect x="1293.9" y="476" width="129.1" height="22" rx="11" fill="#be185d"/>
+<text x="1358.4" y="491.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">partly A-share only</text>
+<text x="565.0" y="519.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">123+ factors validated locally (PIT, T+1, per year): turnover · low-vol · reversal · Amihud liquidity</text>
+<text x="565.0" y="540.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">lottery / skew · F-score · SUE · limit-up/down · Dragon-Tiger institutions · industry crowding · Alpha101</text>
+<rect x="559" y="545" width="862" height="23" rx="5" fill="#0f766e" fill-opacity="0.12"/>
+<text x="567.0" y="561.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">9-step admission for every factor, including AI-mined ones; 17+ falsified factors kept on file</text>
+<text x="565.0" y="582.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Hooks: calendar windows (Spring Festival, Two Sessions, National Day) · policy score (China EPU)</text>
+<rect x="545" y="632" width="435" height="155" rx="10" fill="#f3fbf9" stroke="#0f766e" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="545" y="632" width="6" height="155" rx="3" fill="#0f766e"/>
+<text x="565.0" y="665.0" font-size="17" font-weight="700" fill="#0f766e" text-anchor="start"  xml:space="preserve">④ L0 timing — strategy/timing.py</text>
+<text x="565.0" y="689.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Benchmark index → 5 market regimes → cash %</text>
+<text x="565.0" y="710.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">panic 100% · downtrend 80% · choppy 50%</text>
+<text x="565.0" y="731.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">volatile uptrend 20% · strong uptrend 0%</text>
+<text x="565.0" y="752.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Switches only after N confirmed days</text>
+<text x="565.0" y="773.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">+ traffic light, policy and calendar hooks</text>
+<rect x="1000" y="632" width="435" height="155" rx="10" fill="#f3fbf9" stroke="#0f766e" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="1000" y="632" width="6" height="155" rx="3" fill="#0f766e"/>
+<text x="1020.0" y="665.0" font-size="17" font-weight="700" fill="#0f766e" text-anchor="start"  xml:space="preserve">⑤ Opportunity scan → Pitch cards</text>
+<text x="1020.0" y="689.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">factors/opportunities/scan.py --pitch</text>
+<text x="1020.0" y="710.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">pitch_v2 (value line) + tech_pitch_v3 (tech line)</text>
+<text x="1020.0" y="731.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Each card: score · win-rate · evidence chain ·</text>
+<text x="1020.0" y="752.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">stop plan · opportunity type (registry)</text>
+<text x="1020.0" y="773.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">→ logs/pitch_v2_*.json</text>
+<rect x="545" y="823" width="435" height="155" rx="10" fill="#f3fbf9" stroke="#0f766e" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="545" y="823" width="6" height="155" rx="3" fill="#0f766e"/>
+<text x="565.0" y="856.0" font-size="17" font-weight="700" fill="#0f766e" text-anchor="start"  xml:space="preserve">⑥ Portfolio — strategy/</text>
+<text x="565.0" y="880.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">Core: turn_low (defensive main position)</text>
+<text x="565.0" y="901.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Lowest-turnover top 20, equal weight,</text>
+<text x="565.0" y="922.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">40-day cycle, T+1, no stops, no timing</text>
+<text x="565.0" y="943.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">Satellite: high-score Pitch names only</text>
+<text x="565.0" y="964.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Paper account + simulated tracks</text>
+<rect x="1000" y="823" width="435" height="155" rx="10" fill="#f3fbf9" stroke="#0f766e" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="1000" y="823" width="6" height="155" rx="3" fill="#0f766e"/>
+<text x="1020.0" y="856.0" font-size="17" font-weight="700" fill="#0f766e" text-anchor="start"  xml:space="preserve">⑦ ETF mapping — etf/etf_map.py</text>
+<rect x="1337.1" y="837" width="85.9" height="22" rx="11" fill="#be185d"/>
+<text x="1380.0" y="852.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">SH/SZ ETFs</text>
+<text x="1020.0" y="880.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Strategy daily returns vs config/etf_pool.yaml</text>
+<text x="1020.0" y="901.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Pearson · yearly · rolling 60d · beta</text>
+<text x="1020.0" y="922.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Drops ETFs correlated &gt; 0.85 with each other</text>
+<text x="1020.0" y="943.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">ETF cards A/B/C → small-capital mix</text>
+<text x="1020.0" y="964.0" font-size="14" font-weight="400" fill="#6b7280" text-anchor="start" font-style="italic"  xml:space="preserve">Reference only, never a buy signal</text>
+<rect x="545" y="1014" width="890" height="134" rx="10" fill="#f3fbf9" stroke="#0f766e" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="545" y="1014" width="6" height="134" rx="3" fill="#0f766e"/>
+<text x="565.0" y="1047.0" font-size="17" font-weight="700" fill="#0f766e" text-anchor="start"  xml:space="preserve">⑧ Risk gate — risk/ (holds veto power)</text>
+<text x="565.0" y="1071.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">RiskAgent order: circuit breaker → drawdown tiers 5/10/15% → single trade → per-name cap 10%</text>
+<text x="565.0" y="1092.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">→ industry cap 30% → total position. If risk itself fails: safe mode (no new buys, reduce only).</text>
+<text x="565.0" y="1113.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Stops: hard −7% · ATR×2 · 3-week time stop · MA50 trailing · −8% off the high · take-profit 20–25%</text>
+<text x="565.0" y="1134.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Screens: Beneish M-score (earnings manipulation) · fake-signal detector · data audit · factor health</text>
+<rect x="545" y="1184" width="890" height="113" rx="10" fill="#fff8f1" stroke="#c2410c" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="545" y="1184" width="6" height="113" rx="3" fill="#c2410c"/>
+<text x="565.0" y="1217.0" font-size="17" font-weight="700" fill="#c2410c" text-anchor="start"  xml:space="preserve">⑨ You decide — the /pitch page</text>
+<text x="565.0" y="1241.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Approve buy / drop on each card → recorded in deck_decisions</text>
+<rect x="559" y="1246" width="862" height="23" rx="5" fill="#c2410c" fill-opacity="0.12"/>
+<text x="567.0" y="1262.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">Buy list = aggregation of approved L2 cards (one source, no second recommender)</text>
+<text x="565.0" y="1283.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">You place the order yourself at your broker, at the next day&#x27;s open (T+1). There is no broker adapter.</text>
+<rect x="545" y="1333" width="890" height="113" rx="10" fill="#f3fbf9" stroke="#0f766e" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="545" y="1333" width="6" height="113" rx="3" fill="#0f766e"/>
+<text x="565.0" y="1366.0" font-size="17" font-weight="700" fill="#0f766e" text-anchor="start"  xml:space="preserve">⑩ Forward pools — factors/opportunities/pitch_track.py</text>
+<text x="565.0" y="1390.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Five pools, tracked the same way: A auto_pitch · B machine_top01 · C human_select · D ai_select · ★ niu_select</text>
+<text x="565.0" y="1411.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">update_fwd() fills T+1 / T+5 / T+20 / T+60 returns daily; summaries per pool and per 牛散 persona</text>
+<text x="565.0" y="1432.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Results flow back into factor-pool verdicts, so weak factors and bad habits get demoted</text>
+<rect x="1495" y="250" width="465" height="113" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="1495" y="250" width="6" height="113" rx="3" fill="#475569"/>
+<text x="1515.0" y="283.0" font-size="17" font-weight="700" fill="#475569" text-anchor="start"  xml:space="preserve">DeepSeek API</text>
+<rect x="1816.6" y="264" width="131.4" height="22" rx="11" fill="#d97706"/>
+<text x="1882.3" y="279.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">CN company · global</text>
+<text x="1515.0" y="307.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">platform.deepseek.com · key goes in</text>
+<text x="1515.0" y="328.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">harness/home/.credentials.yaml</text>
+<text x="1515.0" y="349.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Default model deepseek-v4-flash (settings.yaml)</text>
+<rect x="1495" y="399" width="465" height="134" rx="10" fill="#f8f5ff" stroke="#7c3aed" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="1495" y="399" width="6" height="134" rx="3" fill="#7c3aed"/>
+<text x="1515.0" y="432.0" font-size="17" font-weight="700" fill="#7c3aed" text-anchor="start"  xml:space="preserve">DeepSeek HARNESS — Node app :3080</text>
+<text x="1515.0" y="456.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">npm @deepseek-ai/dsh · DSH_HOME=harness/home</text>
+<text x="1515.0" y="477.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Plugin dsq-quant-bridge serves /quantapi/*</text>
+<text x="1515.0" y="498.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">(sessions · chat · 牛散 persona chats)</text>
+<text x="1515.0" y="519.0" font-size="14" font-weight="400" fill="#6b7280" text-anchor="start" font-style="italic"  xml:space="preserve">Skipped automatically without Node or a key</text>
+<rect x="1495" y="551" width="465" height="155" rx="10" fill="#f8f5ff" stroke="#7c3aed" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="1495" y="551" width="6" height="155" rx="3" fill="#7c3aed"/>
+<text x="1515.0" y="584.0" font-size="17" font-weight="700" fill="#7c3aed" text-anchor="start"  xml:space="preserve">Skills the AI loads on demand</text>
+<rect x="1830.4" y="565" width="117.6" height="22" rx="11" fill="#be185d"/>
+<text x="1889.2" y="580.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">Chinese personas</text>
+<text x="1515.0" y="608.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">factor-mining-workflow · alpha-gpt-*</text>
+<text x="1515.0" y="629.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">backtest-acceptance · one-click-deploy</text>
+<text x="1515.0" y="650.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">nl-command-console · github-maintainer</text>
+<text x="1515.0" y="671.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">niu-san-* × 6 Chinese retail-investor personas</text>
+<text x="1515.0" y="692.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">+ niu-san-distillation framework</text>
+<rect x="1495" y="724" width="465" height="260" rx="10" fill="#f8f5ff" stroke="#7c3aed" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="1495" y="724" width="6" height="260" rx="3" fill="#7c3aed"/>
+<text x="1515.0" y="757.0" font-size="17" font-weight="700" fill="#7c3aed" text-anchor="start"  xml:space="preserve">What you type → what happens</text>
+<text x="1515.0" y="781.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">“一键部署” (one-click deploy)</text>
+<text x="1515.0" y="802.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Wizard: AI API → data source → config →</text>
+<text x="1515.0" y="823.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">fetch → full-chain check → report</text>
+<text x="1515.0" y="844.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">“研究散户情绪量化” (mine a factor)</text>
+<text x="1515.0" y="865.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Hypothesis → factor code → 9-step test →</text>
+<text x="1515.0" y="886.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">admitted to pool, or archived as falsified</text>
+<text x="1515.0" y="907.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">Persona chat (林园, 冯柳, 赵老哥 …)</text>
+<text x="1515.0" y="928.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Last line is JSON {&quot;niu_decisions&quot;: […]}</text>
+<text x="1515.0" y="949.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">→ auto-added to the niu_select pool</text>
+<text x="1515.0" y="970.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">“1” → autonomous audit / fix / archive round</text>
+<rect x="40" y="1038" width="430" height="197" rx="10" fill="#f3fbf9" stroke="#0f766e" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="1038" width="6" height="197" rx="3" fill="#0f766e"/>
+<text x="60.0" y="1071.0" font-size="17" font-weight="700" fill="#0f766e" text-anchor="start"  xml:space="preserve">Backtest &amp; validation</text>
+<rect x="362.5" y="1052" width="95.5" height="22" rx="11" fill="#be185d"/>
+<text x="410.2" y="1067.5" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">A-share rules</text>
+<text x="60.0" y="1095.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">backtest/ · validation/</text>
+<text x="60.0" y="1116.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">T+1 open fills · one-price limit-board filter</text>
+<text x="60.0" y="1137.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Cost model · conclusions graded by evidence</text>
+<text x="60.0" y="1158.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Walk-forward, survivorship, sample-size checks</text>
+<text x="60.0" y="1179.0" font-size="14" font-weight="400" fill="#6b7280" text-anchor="start" font-style="italic"  xml:space="preserve">Pre-2019 turnover conclusions are void</text>
+<text x="60.0" y="1200.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Validates ③ factors and ⑥ strategies; the</text>
+<text x="60.0" y="1221.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">/backtest page re-runs config/strategies.yaml</text>
+<rect x="40" y="1265" width="430" height="260" rx="10" fill="#f4f6f9" stroke="#334155" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="1265" width="6" height="260" rx="3" fill="#334155"/>
+<text x="60.0" y="1298.0" font-size="17" font-weight="700" fill="#334155" text-anchor="start"  xml:space="preserve">How it starts</text>
+<text x="60.0" y="1322.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">pip install -r requirements.txt</text>
+<text x="60.0" y="1343.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">cp config/params.yaml.example config/params.yaml</text>
+<text x="60.0" y="1364.0" font-size="14" font-weight="400" fill="#6b7280" text-anchor="start" font-style="italic"  xml:space="preserve">then put your Tushare token in it</text>
+<text x="60.0" y="1385.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">No account yet? Use demo data:</text>
+<text x="60.0" y="1406.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">python data/demo/build_demo_db.py</text>
+<text x="60.0" y="1427.0" font-size="14" font-weight="400" fill="#6b7280" text-anchor="start" font-style="italic"  xml:space="preserve">30 synthetic stocks × 250 days</text>
+<text x="60.0" y="1448.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">export LWQUANT_CACHE_DIR=data/demo</text>
+<text x="60.0" y="1469.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">python launcher.py</text>
+<text x="60.0" y="1490.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">→ HARNESS :3080 (if Node + key)</text>
+<text x="60.0" y="1511.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">→ deck :8787 → browser opens</text>
+<rect x="1495" y="1014" width="465" height="281" rx="10" fill="#ffffff" stroke="#334155" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="1495" y="1014" width="6" height="281" rx="3" fill="#334155"/>
+<text x="1515.0" y="1047.0" font-size="17" font-weight="700" fill="#334155" text-anchor="start"  xml:space="preserve">Legend</text>
+<text x="1515.0" y="1071.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1092.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1113.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1134.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1155.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1176.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1197.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1218.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1239.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1260.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="1515.0" y="1281.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<rect x="1515" y="1056" width="77.2" height="19" rx="9.5" fill="#dc2626"/>
+<text x="1553.6" y="1070.0" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">CN account</text>
+<text x="1625.0" y="1070.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Needs a Chinese-platform account</text>
+<text x="1625.0" y="1088.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">or a private Chinese data vendor</text>
+<rect x="1515" y="1102" width="71.2" height="19" rx="9.5" fill="#d97706"/>
+<text x="1550.6" y="1116.0" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">CN-hosted</text>
+<text x="1625.0" y="1116.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Free Chinese service; usually reachable</text>
+<text x="1625.0" y="1134.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">abroad, but can be slow or blocked</text>
+<rect x="1515" y="1148" width="83.1" height="19" rx="9.5" fill="#be185d"/>
+<text x="1556.6" y="1162.0" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">A-share only</text>
+<text x="1625.0" y="1162.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Works anywhere, but only useful for</text>
+<text x="1625.0" y="1180.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">China&#x27;s A-share market</text>
+<rect x="1515" y="1194" width="49.9" height="19" rx="9.5" fill="#15803d"/>
+<text x="1540.0" y="1208.0" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle"  xml:space="preserve">Global</text>
+<text x="1625.0" y="1208.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">No regional dependency</text>
+<path d="M 1517.0 1231.0 L 1600.0 1231.0" fill="none" stroke="#9ca3af" stroke-width="2.0" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<text x="1625.0" y="1236.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">data / control flow</text>
+<path d="M 1517.0 1255.0 L 1600.0 1255.0" fill="none" stroke="#0f766e" stroke-width="2.0" stroke-dasharray="7 5" marker-end="url(#ah-0f766e)" stroke-linejoin="round"/>
+<text x="1625.0" y="1260.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">feedback from forward returns</text>
+<path d="M 1517.0 1279.0 L 1600.0 1279.0" fill="none" stroke="#7c3aed" stroke-width="2.0" stroke-dasharray="7 5" marker-end="url(#ah-7c3aed)" stroke-linejoin="round"/>
+<text x="1625.0" y="1284.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">AI proposals (must pass the engine)</text>
+<path d="M 470.0 317.0 L 490.0 317.0" fill="none" stroke="#9ca3af" stroke-width="2.0" stroke-linejoin="round"/>
+<path d="M 470.0 431.5 L 490.0 431.5" fill="none" stroke="#9ca3af" stroke-width="2.0" stroke-linejoin="round"/>
+<path d="M 470.0 514.5 L 490.0 514.5" fill="none" stroke="#9ca3af" stroke-width="2.0" stroke-linejoin="round"/>
+<path d="M 470.0 650.0 L 490.0 650.0" fill="none" stroke="#9ca3af" stroke-width="2.0" stroke-linejoin="round"/>
+<path d="M 470.0 785.5 L 490.0 785.5" fill="none" stroke="#9ca3af" stroke-width="2.0" stroke-linejoin="round"/>
+<path d="M 470.0 879.0 L 490.0 879.0" fill="none" stroke="#9ca3af" stroke-width="2.0" stroke-linejoin="round"/>
+<path d="M 470.0 972.5 L 490.0 972.5" fill="none" stroke="#9ca3af" stroke-width="2.0" stroke-linejoin="round"/>
+<path d="M 490.0 317.0 L 490.0 972.5" fill="none" stroke="#9ca3af" stroke-width="2.0" stroke-linejoin="round"/>
+<path d="M 490.0 338.0 L 542.0 338.0" fill="none" stroke="#9ca3af" stroke-width="2.0" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<path d="M 990.0 426.0 L 990.0 459.0" fill="none" stroke="#2563eb" stroke-width="2.0" marker-end="url(#ah-2563eb)" stroke-linejoin="round"/>
+<path d="M 762.5 596.0 L 762.5 629.0" fill="none" stroke="#0f766e" stroke-width="2.0" marker-end="url(#ah-0f766e)" stroke-linejoin="round"/>
+<path d="M 1217.5 596.0 L 1217.5 629.0" fill="none" stroke="#0f766e" stroke-width="2.0" marker-end="url(#ah-0f766e)" stroke-linejoin="round"/>
+<path d="M 702.5 787.0 L 702.5 820.0" fill="none" stroke="#0f766e" stroke-width="2.0" marker-end="url(#ah-0f766e)" stroke-linejoin="round"/>
+<text x="710.5" y="809.0" font-size="12" font-weight="400" fill="#6b7280" text-anchor="start"  xml:space="preserve">cash %</text>
+<path d="M 1060.0 787.0 L 1060.0 805.0 L 920.0 805.0 L 920.0 820.0" fill="none" stroke="#0f766e" stroke-width="2.0" marker-end="url(#ah-0f766e)" stroke-linejoin="round"/>
+<text x="1068.0" y="800.0" font-size="12" font-weight="400" fill="#6b7280" text-anchor="start"  xml:space="preserve">satellite picks</text>
+<path d="M 980.0 900.5 L 997.0 900.5" fill="none" stroke="#0f766e" stroke-width="2.0" marker-end="url(#ah-0f766e)" stroke-linejoin="round"/>
+<path d="M 762.5 978.0 L 762.5 1011.0" fill="none" stroke="#0f766e" stroke-width="2.0" marker-end="url(#ah-0f766e)" stroke-linejoin="round"/>
+<path d="M 990.0 1148.0 L 990.0 1181.0" fill="none" stroke="#0f766e" stroke-width="2.0" marker-end="url(#ah-0f766e)" stroke-linejoin="round"/>
+<path d="M 990.0 1297.0 L 990.0 1330.0" fill="none" stroke="#c2410c" stroke-width="2.0" marker-end="url(#ah-c2410c)" stroke-linejoin="round"/>
+<text x="998.0" y="1320.0" font-size="12" font-weight="400" fill="#6b7280" text-anchor="start"  xml:space="preserve">your choices become pool C</text>
+<path d="M 545.0 1389.5 L 515.0 1389.5 L 515.0 529.0 L 542.0 529.0" fill="none" stroke="#0f766e" stroke-width="2.0" stroke-dasharray="7 5" marker-end="url(#ah-0f766e)" stroke-linejoin="round"/>
+<text x="509.0" y="959.2" font-size="12" font-weight="400" fill="#0f766e" text-anchor="middle" transform="rotate(-90 509 959.2)" xml:space="preserve">forward returns feed back into factor verdicts</text>
+<path d="M 1727.5 363.0 L 1727.5 396.0" fill="none" stroke="#7c3aed" stroke-width="2.0" marker-end="url(#ah-7c3aed)" stroke-linejoin="round"/>
+<path d="M 1495.0 466.0 L 1460.0 466.0 L 1460.0 543.0 L 1438.0 543.0" fill="none" stroke="#7c3aed" stroke-width="2.0" stroke-dasharray="7 5" marker-end="url(#ah-7c3aed)" stroke-linejoin="round"/>
+<path d="M 1495.0 944.0 L 1474.0 944.0 L 1474.0 1389.5 L 1438.0 1389.5" fill="none" stroke="#7c3aed" stroke-width="2.0" stroke-dasharray="7 5" marker-end="url(#ah-7c3aed)" stroke-linejoin="round"/>
+<rect x="40" y="1581" width="1920" height="134" rx="10" fill="#f4f6f9" stroke="#334155" stroke-opacity="0.45" stroke-width="1.4"/>
+<rect x="40" y="1581" width="6" height="134" rx="3" fill="#334155"/>
+<text x="60.0" y="1614.0" font-size="17" font-weight="700" fill="#334155" text-anchor="start"  xml:space="preserve">Web deck — deck/deck_server.py at http://127.0.0.1:8787 (Python stdlib HTTP server)</text>
+<text x="60.0" y="1638.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Every engine step writes JSON into logs/ and output/ → /api/* serves the newest timestamped file · /api/live/* computes live views · /api/proxy/* forwards to HARNESS :3080</text>
+<text x="60.0" y="1659.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">ui_v2 pages fetch everything through LW.api.get (no hard-coded business data):</text>
+<text x="60.0" y="1680.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<text x="60.0" y="1701.0" font-size="15" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve"></text>
+<rect x="60.0" y="1675" width="77.2" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="98.6" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">portal /</text>
+<rect x="147.2" y="1675" width="60.7" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="177.6" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">pitch</text>
+<rect x="218.0" y="1675" width="80.3" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="258.1" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">holdings</text>
+<rect x="308.3" y="1675" width="78.9" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="347.7" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">factors</text>
+<rect x="397.2" y="1675" width="86.5" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="440.4" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">backtest</text>
+<rect x="493.7" y="1675" width="48.7" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="518.0" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">etf</text>
+<rect x="552.4" y="1675" width="98.5" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="601.6" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">pitchtrack</text>
+<rect x="660.9" y="1675" width="71.4" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="696.6" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">report</text>
+<rect x="742.2" y="1675" width="56.2" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="770.4" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">data</text>
+<rect x="808.5" y="1675" width="101.6" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="859.3" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">subj_quant</text>
+<rect x="920.1" y="1675" width="75.8" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="958.0" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">control</text>
+<rect x="1005.9" y="1675" width="53.2" height="26" rx="13" fill="#ffffff" stroke="#334155" stroke-opacity="0.5"/>
+<text x="1032.5" y="1693.0" font-size="14" font-weight="600" fill="#334155" text-anchor="middle"  xml:space="preserve">help</text>
+<path d="M 990.0 1446.0 L 990.0 1578.0" fill="none" stroke="#334155" stroke-width="2.0" marker-end="url(#ah-334155)" stroke-linejoin="round"/>
+<text x="998.0" y="1471.0" font-size="12" font-weight="400" fill="#6b7280" text-anchor="start"  xml:space="preserve">JSON in logs/ · output/</text>
+<text x="40.0" y="1765.0" font-size="13" font-weight="800" fill="#6b7280" text-anchor="start" letter-spacing="0.6" xml:space="preserve">A TRADING DAY · the author&#x27;s scheduled jobs (Windows Task Scheduler)</text>
+<rect x="40.0" y="1781" width="200.9" height="112" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.5" stroke-width="1.4"/>
+<rect x="40.0" y="1781" width="200.9" height="6" rx="3" fill="#475569"/>
+<text x="54.0" y="1811.0" font-size="14" font-weight="800" fill="#475569" text-anchor="start"  xml:space="preserve">09:15–09:25</text>
+<text x="54.0" y="1833.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">Call auction</text>
+<text x="54.0" y="1856.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Scored from minute bars:</text>
+<text x="54.0" y="1874.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">7z bundles / Sina 1-min</text>
+<path d="M 242.9 1837.0 L 252.9 1837.0" fill="none" stroke="#9ca3af" stroke-width="1.6" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<rect x="254.9" y="1781" width="200.9" height="112" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.5" stroke-width="1.4"/>
+<rect x="254.9" y="1781" width="200.9" height="6" rx="3" fill="#475569"/>
+<text x="268.9" y="1811.0" font-size="14" font-weight="800" fill="#475569" text-anchor="start"  xml:space="preserve">09:30–15:00</text>
+<text x="268.9" y="1833.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">Trading session</text>
+<text x="268.9" y="1856.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Live snapshot (Sina, 60 s)</text>
+<text x="268.9" y="1874.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">breakout monitor /30 min</text>
+<path d="M 457.8 1837.0 L 467.8 1837.0" fill="none" stroke="#9ca3af" stroke-width="1.6" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<rect x="469.8" y="1781" width="200.9" height="112" rx="10" fill="#ffffff" stroke="#475569" stroke-opacity="0.5" stroke-width="1.4"/>
+<rect x="469.8" y="1781" width="200.9" height="6" rx="3" fill="#475569"/>
+<text x="483.8" y="1811.0" font-size="14" font-weight="800" fill="#475569" text-anchor="start"  xml:space="preserve">≈16:45</text>
+<text x="483.8" y="1833.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">EOD data ready</text>
+<text x="483.8" y="1856.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Tushare publishes the</text>
+<text x="483.8" y="1874.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">day&#x27;s bars after close</text>
+<path d="M 672.7 1837.0 L 682.7 1837.0" fill="none" stroke="#9ca3af" stroke-width="1.6" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<rect x="684.7" y="1781" width="200.9" height="112" rx="10" fill="#ffffff" stroke="#2563eb" stroke-opacity="0.5" stroke-width="1.4"/>
+<rect x="684.7" y="1781" width="200.9" height="6" rx="3" fill="#2563eb"/>
+<text x="698.7" y="1811.0" font-size="14" font-weight="800" fill="#2563eb" text-anchor="start"  xml:space="preserve">17:30</text>
+<text x="698.7" y="1833.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">TushareInc</text>
+<text x="698.7" y="1856.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Daily bars →</text>
+<text x="698.7" y="1874.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">bars_incr.db</text>
+<path d="M 887.6 1837.0 L 897.6 1837.0" fill="none" stroke="#9ca3af" stroke-width="1.6" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<rect x="899.6" y="1781" width="200.9" height="112" rx="10" fill="#ffffff" stroke="#0f766e" stroke-opacity="0.5" stroke-width="1.4"/>
+<rect x="899.6" y="1781" width="200.9" height="6" rx="3" fill="#0f766e"/>
+<text x="913.6" y="1811.0" font-size="14" font-weight="800" fill="#0f766e" text-anchor="start"  xml:space="preserve">17:35</text>
+<text x="913.6" y="1833.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">AfterCloseScan</text>
+<text x="913.6" y="1856.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Factor scoring → scan</text>
+<text x="913.6" y="1874.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">→ Pitch v2 → tech v3</text>
+<path d="M 1102.4 1837.0 L 1112.4 1837.0" fill="none" stroke="#9ca3af" stroke-width="1.6" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<rect x="1114.4" y="1781" width="200.9" height="112" rx="10" fill="#ffffff" stroke="#0f766e" stroke-opacity="0.5" stroke-width="1.4"/>
+<rect x="1114.4" y="1781" width="200.9" height="6" rx="3" fill="#0f766e"/>
+<text x="1128.4" y="1811.0" font-size="14" font-weight="800" fill="#0f766e" text-anchor="start"  xml:space="preserve">17:40 · 19:15</text>
+<text x="1128.4" y="1833.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">Factor jobs</text>
+<text x="1128.4" y="1856.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">FactorArchive snapshots,</text>
+<text x="1128.4" y="1874.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">FactorDaily pool update</text>
+<path d="M 1317.3 1837.0 L 1327.3 1837.0" fill="none" stroke="#9ca3af" stroke-width="1.6" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<rect x="1329.3" y="1781" width="200.9" height="112" rx="10" fill="#ffffff" stroke="#0f766e" stroke-opacity="0.5" stroke-width="1.4"/>
+<rect x="1329.3" y="1781" width="200.9" height="6" rx="3" fill="#0f766e"/>
+<text x="1343.3" y="1811.0" font-size="14" font-weight="800" fill="#0f766e" text-anchor="start"  xml:space="preserve">18:30</text>
+<text x="1343.3" y="1833.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">DailyPipeline</text>
+<text x="1343.3" y="1856.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Minute 7z ingest, bar</text>
+<text x="1343.3" y="1874.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">backfill, health, scan</text>
+<path d="M 1532.2 1837.0 L 1542.2 1837.0" fill="none" stroke="#9ca3af" stroke-width="1.6" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<rect x="1544.2" y="1781" width="200.9" height="112" rx="10" fill="#ffffff" stroke="#7c3aed" stroke-opacity="0.5" stroke-width="1.4"/>
+<rect x="1544.2" y="1781" width="200.9" height="6" rx="3" fill="#7c3aed"/>
+<text x="1558.2" y="1811.0" font-size="14" font-weight="800" fill="#7c3aed" text-anchor="start"  xml:space="preserve">20:00</text>
+<text x="1558.2" y="1833.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">AIReview</text>
+<text x="1558.2" y="1856.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">AI brief from market KB,</text>
+<text x="1558.2" y="1874.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">checks AI picks logged</text>
+<path d="M 1747.1 1837.0 L 1757.1 1837.0" fill="none" stroke="#9ca3af" stroke-width="1.6" marker-end="url(#ah-9ca3af)" stroke-linejoin="round"/>
+<rect x="1759.1" y="1781" width="200.9" height="112" rx="10" fill="#ffffff" stroke="#c2410c" stroke-opacity="0.5" stroke-width="1.4"/>
+<rect x="1759.1" y="1781" width="200.9" height="6" rx="3" fill="#c2410c"/>
+<text x="1773.1" y="1811.0" font-size="14" font-weight="800" fill="#c2410c" text-anchor="start"  xml:space="preserve">Evening → open</text>
+<text x="1773.1" y="1833.0" font-size="15" font-weight="700" fill="#111827" text-anchor="start"  xml:space="preserve">You decide (T+1)</text>
+<text x="1773.1" y="1856.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">Approve on /pitch, order</text>
+<text x="1773.1" y="1874.0" font-size="13" font-weight="400" fill="#374151" text-anchor="start"  xml:space="preserve">at the next day&#x27;s open</text>
+<text x="40.0" y="1917.0" font-size="13" font-weight="400" fill="#6b7280" text-anchor="start" font-style="italic"  xml:space="preserve">The repo ships these scripts but does not register the jobs (schtasks). On macOS/Linux run them by hand or schedule them with cron / launchd. Fetching only needs to happen once a day, after the close.</text>
+</svg>

@@ -28,6 +28,9 @@ data:
   jqdata_user: "<your-config>" # 聚宽 JQData 账号（2026-08-14 用户申请）
   jqdata_password: "<your-config>" # 聚宽 JQData 密码
   jqdata_note: "试用/免费版：数据窗口 2025-05-06~2026-05-13（约1年，含 1m/30m/60m 分钟线+申万行业+valuation；无当前实时数据，分钟线仅可用于回测验证周期因子）"
+  api_keys:                          # US / Bursa Malaysia providers (config/markets.yaml); same-named env vars override
+    SEC_USER_AGENT: "<your-config>"  # "Your Name your@email.com"; SEC rejects requests without it
+    EODHD_API_KEY: "<your-config>"   # only needed when a market uses provider eodhd
 
 # ---------- CANSLIM 主引擎（修正版）----------
 factors:

@@ -272,6 +272,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({"harness": {"online": False}, "error": "harness_state.json 未生成"}, 404)
             except Exception as e:
                 return self._send_json({"error": str(e)}, 500)
+        if path == "/api/markets":   # US / Bursa Malaysia data coverage (config/markets.yaml, data/market_update.py)
+            try:
+                if str(BASE) not in sys.path:
+                    sys.path.insert(0, str(BASE))
+                from data.market_store import build_status
+                from data.markets import list_markets
+                return self._send_json({"ok": True, "results": [build_status(m) for m in list_markets().values()]})
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
         if path == "/api/build_mode":   # ★2026-08-16 构建模式（dev=开发版徽章 / release=公测发布版无徽章；config/ui_build.json 驱动）
             try:
                 _bm = BASE / "config" / "ui_build.json"

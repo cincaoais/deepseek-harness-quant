@@ -1,0 +1,82 @@
+# ============================================================
+# Market registry: US equities and Bursa Malaysia (A-share settings stay in params.yaml)
+# Copy to markets.yaml to customise; without it the loader reads this template.
+# API keys never go here: set environment variables, or config/params.yaml → data.api_keys
+#   EODHD_API_KEY   needed only when a provider below is "eodhd"
+#   SEC_USER_AGENT  "Your Name your@email.com" (SEC rejects requests without it)
+# Update data:  python data/market_update.py --market US     (see docs/markets-data.md)
+# ============================================================
+markets:
+  US:
+    name: US equities
+    currency: USD
+    calendar: XNYS                    # exchange_calendars code
+    history_start: "2010-01-01"
+    benchmark: {code: SPY}
+    providers:
+      bars: yahoo                     # yahoo: free, no delisted tickers | eodhd: paid key, includes delisted
+      symbols: nasdaqtrader           # nasdaqtrader: free, current listings | eodhd | seed
+      fundamentals: sec_edgar         # SEC XBRL company facts, point-in-time by filing date
+      macro: fred                     # keyless CSV, latest vintage
+    provider_symbols:                 # canonical BRK.B.US → provider ticker
+      yahoo: {suffix: "", class_separator: "-"}
+      eodhd: {suffix: ".US", class_separator: "-", exchange: US}
+      sec_edgar: {suffix: "", class_separator: "-"}
+    universe:
+      default: seed                   # seed: the list below | all: symbol master after filters
+      include_etfs: true
+      exclude_name_patterns:          # case-insensitive regex on the security name
+        - '\bwarrants?\b'
+        - '\bunits?\b'
+        - '\brights?\b'
+        - '\bpreferred\b'
+        - '\bnotes?\b'
+        - '\bdebentures?\b'
+        - '\bacquisition corp'
+        - 'depositary shares, each representing a \d+/\d+'
+      seed: [QQQ, IWM, VTI, SMH, XLK, SCHD, GLD, TLT,
+             AAPL, MSFT, NVDA, GOOGL, AMZN, META, TSLA, AVGO,
+             AMD, TSM, ASML, MU, QCOM, ARM,
+             ORCL, CRM, ADBE, NOW, NFLX, PLTR, UBER, SHOP,
+             JPM, BRK.B, V, MA, GS, BAC,
+             LLY, UNH, JNJ, ABBV, ISRG, NVO,
+             COST, WMT, KO, PEP, MCD, NKE, DIS,
+             XOM, CVX, CAT, GE, BA]
+    fundamentals:
+      refresh_days: 7                 # skip companies refreshed more recently than this
+      concepts:
+        - dei:EntityCommonStockSharesOutstanding
+        - us-gaap:CommonStockSharesOutstanding
+        - us-gaap:Revenues
+        - us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+        - us-gaap:NetIncomeLoss
+        - us-gaap:EarningsPerShareDiluted
+        - us-gaap:Assets
+        - us-gaap:Liabilities
+        - us-gaap:StockholdersEquity
+        - us-gaap:NetCashProvidedByUsedInOperatingActivities
+        - us-gaap:LongTermDebt
+    macro:
+      # CPIAUCSL and UNRATE get revised: the keyless CSV holds the latest vintage only
+      series: [DGS10, DGS2, T10Y2Y, FEDFUNDS, VIXCLS, BAMLH0A0HYM2, USEPUINDXD, CPIAUCSL, UNRATE]
+
+  MY:
+    name: Bursa Malaysia
+    currency: MYR
+    calendar: XKLS
+    history_start: "2010-01-01"
+    benchmark: {code: KLCI, yahoo: "^KLSE", eodhd: KLSE.INDX}
+    providers:
+      bars: yahoo                     # yahoo drops delisted counters → backtests overstate returns
+      symbols: seed                   # eodhd gives the full list incl. delisted (paid key)
+    provider_symbols:
+      yahoo: {suffix: ".KL", class_separator: "-"}
+      eodhd: {suffix: ".KLSE", class_separator: "-", exchange: KLSE}
+    universe:
+      default: seed
+      include_etfs: true
+      exclude_name_patterns: ['\bwarrants?\b', '-W[A-Z]?$', '-C[0-9A-Z]+$']
+      # quoted so leading zeros survive (0166 = Inari Amertron)
+      seed: ["1155", "1295", "1023", "5819", "1066", "5347", "6742", "6033", "5183", "8869",
+             "5225", "5398", "5211", "0166", "6947", "6012", "4863", "6888", "5296", "4707",
+             "2445", "1961", "5285", "4197", "3182"]
