@@ -67,7 +67,8 @@
         var r = m.regime || {}, b = m.book || {}, grades = m.validation.grades || {};
         return '<tr><td><b>' + fmt.esc(m.name) + '</b></td><td>' + fmt.esc(m.data.last_date || '–') +
           (m.data.is_current ? '' : ' <span style="color:#f59e0b">stale</span>') + '</td><td>' +
-          (r.state ? fmt.esc(r.state) + (r.can_trade ? '' : ' · <span style="color:#f59e0b">no new positions</span>') : '–') +
+          (r.state ? fmt.esc(r.state) + (r.is_gate === false ? ' <span class="mini">(info)</span>'
+            : (r.can_trade ? '' : ' · <span style="color:#f59e0b">no new positions</span>')) : '–') +
           '</td><td>' + m.cards.count + (m.cards.signal_date ? ' · ' + fmt.esc(m.cards.signal_date) : '') + '</td><td>' + m.buy_list +
           '</td><td>' + b.open + '/' + (b.slots || '–') + ' · ' + fmt.money(b.value, m.currency) + '</td><td>' + fmt.pnl(b.unrealized || 0, m.currency) +
           '</td><td>' + (b.alerts ? '<b style="color:#f59e0b">' + b.alerts + '</b>' : '0') + '</td><td class="mini">' +
@@ -180,8 +181,43 @@
           }).join('') + '</div>' +
           table(['Factor', 'Grade', 'Annual', 'Sharpe', 'Max DD', 'vs benchmark', 'IC (t)', 'Holdout', 'Capacity', ''], rows)) +
           card('Excess return by year', 'portfolio minus ' + fmt.esc(r.benchmark.code),
-            '<div style="overflow-x:auto">' + table(['Factor'].concat(years), yearRows) + '</div>');
+            '<div style="overflow-x:auto">' + table(['Factor'].concat(years), yearRows) + '</div>') +
+          '<div class="mv-timing"></div>';
+        timing(body.querySelector('.mv-timing'), market);
       });
+    });
+  }
+
+  function timing(box, market) {
+    LW.api.get('/api/markets/timing').then(function (d) {
+      var r = ((d && d.results) || []).filter(function (x) { return x.market === market.id; })[0];
+      if (!r) { box.innerHTML = card('Timing hypotheses', '', '<div class="mini">No report yet: python backtest/market_timing.py --market ' + market.id + '</div>'); return; }
+      var g = r.regime, row = function (label, m) {
+        return '<tr><td>' + label + '</td><td>' + fmt.pct(m.annual_return) + '</td><td>' + fmt.num(m.sharpe, 2) + '</td><td>' + fmt.pct(m.max_drawdown) + '</td></tr>';
+      };
+      var verdictColor = { helps: '#22c55e', mixed: '#f59e0b', hurts: '#ef4444' }[g.verdict];
+      var sens = g.sensitivity.map(function (s) {
+        return '<tr><td>' + s.crisis_vol + '</td><td>' + s.confirm_days + '</td><td>' + fmt.pct(s.annual_return) + '</td><td>' + fmt.num(s.sharpe, 2) + '</td><td>' + fmt.pct(s.max_drawdown) + '</td></tr>';
+      });
+      var gradeColor = { valid: '#22c55e', watch: '#f59e0b', invalid: '#71717a' };
+      var cal = Object.keys(r.calendar).map(function (w) {
+        var b = r.calendar[w].benchmark, e = r.calendar[w].equal_weight;
+        var cell = function (x) {
+          return '<td>' + (x.inside_bp == null ? '–' : x.inside_bp + ' vs ' + x.outside_bp + ' bp/day') + '</td><td>' + fmt.num(x.t_stat, 2) +
+            '</td><td style="color:' + gradeColor[x.grade] + '" title="' + fmt.esc((x.reasons || []).join('; ')) + '">' + x.grade + '</td>';
+        };
+        return '<tr><td>' + fmt.esc(w) + '</td>' + cell(b) + cell(e) + '</tr>';
+      });
+      box.innerHTML = card('L0 regime overlay on ' + fmt.esc(r.benchmark), '<span style="color:' + verdictColor + '">' + g.verdict + '</span> · ' +
+          'avg exposure ' + Math.round(g.avg_exposure * 100) + '% · ' + fmt.num(g.switches_per_year, 1) + ' switches/yr · now ' + fmt.esc(g.current.state),
+          table(['', 'Annual', 'Sharpe', 'Max DD'], [row('Buy and hold', g.benchmark), row('With L0 overlay', g.overlay),
+            row('Holdout buy and hold', g.holdout.benchmark), row('Holdout overlay', g.holdout.overlay)]) +
+          '<div class="mini" style="margin-top:8px">Sensitivity (crisis volatility × confirmation days):</div>' +
+          table(['Crisis vol', 'Confirm', 'Annual', 'Sharpe', 'Max DD'], sens)) +
+        card('Calendar windows', 'mean daily return inside vs outside · from ' + fmt.esc(r.start) + ' · holdout from ' + fmt.esc(r.holdout_start),
+          table(['Window', fmt.esc(r.benchmark), 't', 'Grade', 'Equal-weight universe', 't', 'Grade'], cal) +
+          '<div class="mini" style="opacity:.7;margin-top:6px">Many windows are tested at once, so treat a lone |t| near 2 with suspicion. ' +
+          'The equal-weight universe lacks delisted stocks and is capped at "watch".</div>');
     });
   }
 
@@ -235,15 +271,15 @@
   function coverage(box) {
     LW.api.get('/api/markets', { bypass: true }).then(function (d) {
       var rows = ((d && d.results) || []).map(function (m) {
-        var t = m.turnover || {}, sh = m.shares || {}, f = m.fundamentals || {}, sm = m.symbol_master || {};
+        var t = m.turnover || {}, sh = m.shares || {}, sm = m.symbol_master || {}, fr = m.frames || {};
         return '<tr><td><b>' + fmt.esc(m.name) + '</b></td><td>' + m.bars.symbols + ' · ' + fmt.num(m.bars.rows, 0) + ' rows</td><td>' +
           fmt.esc(m.bars.first_date) + ' → ' + fmt.esc(m.bars.last_date) + (m.bars.is_current ? '' : ' <span style="color:#f59e0b">stale</span>') +
           '</td><td>' + (sm.count || 0) + '</td><td>' + (sh.companies || 0) + '</td><td>' + (t.codes != null ? t.codes + (t.not_domestic ? ' (' + t.not_domestic + ' foreign/multi-class excluded)' : '') : '–') +
-          '</td><td>' + (f.companies || 0) + ' · ' + fmt.num(f.facts, 0) + ' facts</td><td>' + (m.macro || []).length + '</td><td>' +
+          '</td><td>' + (fr.companies || 0) + ' cos · ' + fmt.num(fr.values, 0) + ' values</td><td>' + (m.macro || []).length + '</td><td>' +
           fmt.esc(m.providers.bars) + (m.is_survivorship_safe ? '' : ' <span style="color:#f59e0b">(no delisted)</span>') + '</td></tr>';
       });
       box.innerHTML = card('US / Malaysia data', 'python data/market_update.py · docs/markets-data.md',
-        table(['Market', 'Daily bars', 'Range', 'Symbol master', 'Share counts', 'Turnover stocks', 'SEC facts', 'Macro series', 'Bars source'], rows));
+        table(['Market', 'Daily bars', 'Range', 'Symbol master', 'Share counts', 'Turnover stocks', 'SEC frames', 'Macro series', 'Bars source'], rows));
     }).catch(function (e) { box.innerHTML = '<div class="mini">' + fmt.esc(e) + '</div>'; });
   }
 

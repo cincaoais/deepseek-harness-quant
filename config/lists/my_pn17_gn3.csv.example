@@ -1,0 +1,4 @@
+# Bursa Malaysia PN17 (Main) / GN3 (ACE) distressed companies. Copy to my_pn17_gn3.csv and fill from
+# https://www.bursamalaysia.com/trade/trading_resources/listing_directory/pn17_and_gn3_companies
+# Keep the four-digit code (e.g. 0166); refresh when Bursa updates the list.
+code,name

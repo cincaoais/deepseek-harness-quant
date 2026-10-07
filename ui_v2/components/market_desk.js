@@ -11,8 +11,10 @@
 
   function renderHeader(d) {
     var c = d.cards, r = c.regime || {};
-    var regime = r.state ? esc(r.state) + ' · cash ' + Math.round((r.cash_ratio || 0) * 100) + '% · ' +
-      (r.can_trade ? 'new positions allowed' : '<b style="color:#f59e0b">no new positions (L0)</b>') : 'n/a';
+    var gate = r.is_gate === false
+      ? 'informational only (tested: ' + esc(r.verdict || 'not yet') + ')'
+      : (r.can_trade ? 'new positions allowed' : '<b style="color:#f59e0b">no new positions (L0)</b>');
+    var regime = r.state ? esc(r.state) + ' · cash ' + Math.round((r.cash_ratio || 0) * 100) + '% · ' + gate : 'n/a';
     var warn = (c.warnings || []).map(function (w) { return '<div>⚠ ' + esc(w) + '</div>'; }).join('');
     return '<div class="v2-card"><h2>' + esc(d.name) + ' <span class="tag">' + esc(d.currency) + '</span></h2>' +
       '<div class="mini" style="line-height:1.9">Signal ' + esc(c.signal_date) + ' close → trade at the next session open · ' +
@@ -91,13 +93,15 @@
           esc(current) + '</code>.</div></div>';
         return;
       }
-      body.innerHTML = renderHeader(d) + renderBuyList(d) + renderCards(d) + renderEvidence(d.cards) + renderTrack(d.track);
+      body.innerHTML = renderHeader(d) + renderBuyList(d) + renderCards(d) + '<div id="md-personas"></div>' +
+        renderEvidence(d.cards) + renderTrack(d.track);
+      loadPersonas(box);
     }).catch(function (e) { body.innerHTML = '<div class="mini">' + esc(e) + '</div>'; });
   }
 
   function decide(box, code, action) {
     var regime = (box._desk && box._desk.cards && box._desk.cards.regime) || {};
-    if (action === 'buy' && regime.state && !regime.can_trade &&
+    if (action === 'buy' && regime.state && regime.is_gate !== false && !regime.can_trade &&
         !window.confirm('L0 regime is "' + regime.state + '": no new positions. Record this buy anyway?')) return;
     fetch('/api/markets/decide', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -106,6 +110,53 @@
       toast(res.ok ? code + ' · ' + action : (res.message || 'failed'));
       renderDesk(box);
     }).catch(function (e) { toast('server unreachable: ' + e); });
+  }
+
+  function renderPersonas(p) {
+    var llm = p.llm || {};
+    var keyNote = llm.is_key_set ? 'key set' : '<b style="color:#f59e0b">no key: add ' + esc('DEEPSEEK_API_KEY') +
+      ' to harness/home/.credentials.yaml (or set it in config/market_personas.yaml → llm)</b>';
+    var rows = p.personas.map(function (x) {
+      var calls = x.decisions.map(function (d) {
+        return '<span class="tag-ot" title="' + esc(d.reason) + '">' + esc(d.code) + ' ' + esc(d.action) + '</span>';
+      }).join(' ') || '<span class="mini" style="opacity:.6">–</span>';
+      var last = x.last_turns.filter(function (t) { return t.role === 'assistant'; }).pop();
+      var reply = last ? '<details><summary class="mini">' + esc(last.ts) + ' · ' + esc(last.content.slice(0, 90)) + '…</summary>' +
+        '<div class="mini" style="white-space:pre-wrap;line-height:1.6;margin-top:6px">' + esc(last.content) + '</div></details>'
+        : '<span class="mini" style="opacity:.6">not consulted yet</span>';
+      var t = x.track || {}, t20 = t.t20, t5 = t.t5;
+      var record = t.entries ? t.entries + ' buys · T+5 ' + (t5 ? pct(t5.mean) : '–') + ' · T+20 ' + (t20 ? pct(t20.mean) : '–')
+        : '<span class="mini" style="opacity:.6">no buys yet</span>';
+      return '<tr><td><b>' + esc(x.name) + '</b> <span class="mini">' + esc(x.tag) + (x.can_buy ? '' : ' · never buys') + '</span></td><td>' +
+        calls + '</td><td style="max-width:420px">' + reply + '</td><td class="mini">' + record + '</td><td>' +
+        '<button class="v2-btn md-ask" data-persona="' + esc(x.id) + '">Ask</button></td></tr>';
+    }).join('');
+    return '<div class="v2-card"><h2>AI personas <span class="tag">' + esc(llm.model || '') + ' · ' + keyNote + '</span></h2>' +
+      '<div class="mini" style="line-height:1.8">Investing styles, not real people. They see today\'s cards, your holdings and the evidence; ' +
+      'their calls are tracked to measure them and never become orders. <button class="v2-btn md-consult-all">Consult all</button> ' +
+      '<span class="md-persona-status"></span></div>' +
+      '<table><thead><tr><th>Persona</th><th>Today\'s calls</th><th>Last reply</th><th>Track record</th><th></th></tr></thead><tbody>' +
+      rows + '</tbody></table></div>';
+  }
+
+  function loadPersonas(box) {
+    var slot = box.querySelector('#md-personas');
+    if (!slot) return;
+    LW.api.get('/api/markets/personas?market=' + encodeURIComponent(current), { bypass: true }).then(function (p) {
+      if (p && p.ok) { slot.innerHTML = renderPersonas(p); box._personas = p.personas; }
+    }).catch(function () { slot.innerHTML = ''; });
+  }
+
+  function consult(box, persona, text) {
+    var status = box.querySelector('.md-persona-status');
+    if (status) status.textContent = 'asking ' + persona + '… (reasoning models can take a minute)';
+    return fetch('/api/markets/persona_chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ market: current, persona: persona, text: text || '' })
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      toast(res.ok ? persona + ': ' + res.recorded + ' calls recorded' : (res.message || 'failed'));
+      return res;
+    });
   }
 
   function recordFill(box, b) {
@@ -142,6 +193,16 @@
           if (b) decide(box, b.getAttribute('data-code'), b.getAttribute('data-act'));
           var f = ev.target.closest('.md-fill');
           if (f) recordFill(box, f);
+          var ask = ev.target.closest('.md-ask');
+          if (ask) {
+            var q = window.prompt('Question for ' + ask.getAttribute('data-persona') + ' (empty = daily review)', '');
+            if (q !== null) consult(box, ask.getAttribute('data-persona'), q).then(function () { renderDesk(box); });
+          }
+          if (ev.target.closest('.md-consult-all')) {
+            (box._personas || []).reduce(function (chain, x) {
+              return chain.then(function () { return consult(box, x.id, ''); });
+            }, Promise.resolve()).then(function () { renderDesk(box); });
+          }
         });
       }
       renderDesk(box);

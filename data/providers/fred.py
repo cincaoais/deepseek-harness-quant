@@ -9,8 +9,9 @@ from data.providers.base import http_get
 CSV_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv"
 
 
-def get_series(series_id: str) -> pd.DataFrame:
-    return parse_series_csv(http_get(CSV_URL, params={"id": series_id}).text)
+def get_series(spec: dict, start: str) -> pd.DataFrame:
+    """Full history of spec["id"]; `start` is applied by the caller."""
+    return parse_series_csv(http_get(CSV_URL, params={"id": spec["id"]}).text)
 
 
 def parse_series_csv(text: str) -> pd.DataFrame:

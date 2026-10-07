@@ -117,3 +117,15 @@ archive(returns, params={"name": "我的策略", "strategy": "my_custom"},
 - 因子全量回测：`deepseek-harness-quant/backtest/backtest_all_factors.py`
 - 数据读取：`deepseek-harness-quant/data/cache.py`
 - 前端：`/backtest`（策略目录 API：`/api/live/backtest_strategies`）
+
+---
+
+## US / Bursa Malaysia (config/markets.yaml)
+
+The A-share rules above do not apply as written to US or Bursa Malaysia. For those markets:
+
+- **Rules and costs** come from `config/markets.yaml` → `rules` (board lot, price limit) and `costs` (moomoo MY / Bursa schedule), implemented in `backtest/market_rules.py`. No one-price-limit filter in the US; Bursa has a ±30% limit (±30 sen under RM1) and 100-share lots; US uses fractional shares.
+- **Engine:** `backtest/market_bt.py`: signal at the close, fill at the next open, per-order costs, lot rounding, halted positions carried at the last close.
+- **Validation:** `python backtest/market_validation.py --market US|MY` runs the nine-step chain and grades valid / watch / invalid with the thresholds above; results in `output/market_validation/latest_<market>.json` (`/api/markets/validation`).
+- **Market-level hypotheses** (L0 regime overlay, calendar windows): `python backtest/market_timing.py --market US|MY`. On 2012–2026 data the L0 overlay lowered Sharpe in both markets, so it is informational there (`timing.gate_new_positions: false`).
+- **Data boundaries to disclose:** Yahoo bars have no delisted stocks, so nothing grades above "watch"; turnover is validated only from `shares.reliable_from` (US 2016, MY mid-2023); US turnover exists only for single-ticker 10-Q filers (no ADRs, no multi-class); SEC frames hold the latest filed value (restatements leak); FRED keyless CSV is the latest vintage.

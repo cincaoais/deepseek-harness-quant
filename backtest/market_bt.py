@@ -36,6 +36,19 @@ def build_panel(market: Market, codes: list, start: str, end: str = None) -> dic
     return panel
 
 
+def build_fundamental_panel(market: Market, index, codes: list) -> dict:
+    """Wide frames per fundamentals.frames field: the latest value available on each date,
+    carried for at most ~14 months so a company that stops filing drops out."""
+    panel = {}
+    for spec in market.fundamentals.get("frames") or []:
+        values = market_store.list_frame_values(market, spec["field"])
+        wide = values.pivot_table(index="available_from", columns="code", values="value", aggfunc="last")
+        wide = wide.reindex(columns=codes)
+        merged = wide.reindex(wide.index.union(index)).sort_index().ffill(limit=300)
+        panel[spec["field"]] = merged.reindex(index)
+    return panel
+
+
 def build_raw_close(market: Market, split_close: pd.DataFrame) -> pd.DataFrame:
     """Undo split adjustment: multiply by every split ratio after each date."""
     raw = split_close.copy()

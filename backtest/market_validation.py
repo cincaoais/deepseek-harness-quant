@@ -25,11 +25,11 @@ if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
 from backtest.bt_report import compute_metrics  # noqa: E402
-from backtest.market_bt import (build_eligibility, build_panel, compute_adv,  # noqa: E402
+from backtest.market_bt import (build_eligibility, build_fundamental_panel, build_panel, compute_adv,  # noqa: E402
                                 compute_forward_returns, compute_rank_ic, list_rebalance_dates, run_portfolio)
 from data import market_store  # noqa: E402
 from data.markets import Market, get_market  # noqa: E402
-from factors.market_factors import TURNOVER_FACTORS, compute_factor  # noqa: E402
+from factors.market_factors import FUNDAMENTAL_FACTORS, TURNOVER_FACTORS, compute_factor  # noqa: E402
 
 ARCHIVE_DIR = BASE / "output" / "market_validation"
 DUPLICATE_CORR = 0.7
@@ -120,12 +120,16 @@ def split_holdout(returns: pd.Series, ic: pd.Series, holdout_start: str) -> dict
 
 
 def list_validation_codes(market: Market) -> tuple:
-    """Stocks with stored bars (scope) and the codes never traded: ETFs and the benchmark."""
+    """Stocks with stored bars (scope) and the codes never traded: the benchmark and, when a symbol
+    master exists, anything today's universe filters reject (ETFs, name and code patterns)."""
+    from data.market_update import resolve_universe
+
     codes = market_store.list_bar_codes(market)
-    master = market_store.list_symbols(market)
     excluded = {market.benchmark_symbol}
-    if market.validation.get("filters", {}).get("exclude_etfs", True):
-        excluded |= set(master.loc[master["is_etf"] == 1, "code"])
+    if not market_store.list_symbols(market).empty:
+        is_stocks_only = market.validation.get("filters", {}).get("exclude_etfs", True)
+        allowed = set(resolve_universe(market, "all", is_stocks_only=is_stocks_only))
+        excluded |= {c for c in codes if c not in allowed}
     return codes, excluded
 
 
@@ -138,11 +142,13 @@ def run_validation(market: Market, factor_names=None) -> dict:
     panel["adv_20"] = compute_adv(panel)
     mask = build_eligibility(panel, cfg.get("filters") or {}, excluded)
     index = panel["close"].index
+    wanted = [f for f in cfg.get("factors") or [] if not factor_names or f["name"] in factor_names]
+    if any(f["name"] in FUNDAMENTAL_FACTORS for f in wanted):
+        panel.update(build_fundamental_panel(market, index, list(panel["close"].columns)))
     forward = compute_forward_returns(panel, every)
     bench = panel["close"][market.benchmark_symbol].pct_change(fill_method=None).fillna(0)
     is_safe = market.providers.get("bars") == "eodhd"
     reliable_from = market.shares.get("reliable_from", cfg["start"])
-    wanted = [f for f in cfg.get("factors") or [] if not factor_names or f["name"] in factor_names]
     grid = list_rebalance_dates(index, cfg["start"], every)
 
     results, scores_on_dates, excess = {}, {}, {}
@@ -218,6 +224,9 @@ def build_data_notes(market: Market, is_safe: bool, reliable_from: str) -> list:
     if not is_safe:
         notes.append(f"bars from {market.providers.get('bars')} have no delisted stocks: returns biased upward")
     notes.append(f"turnover factors validated from {reliable_from} (share-count history boundary)")
+    if market.fundamentals.get("frames"):
+        notes.append(f"fundamentals: SEC frames used {market.fundamentals.get('frame_lag_days', 90)} days after "
+                     "period end; frames hold the latest filed value, so restatements leak slightly")
     return notes
 
 

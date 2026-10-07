@@ -45,6 +45,10 @@ CREATE TABLE IF NOT EXISTS shares_outstanding (
     PRIMARY KEY (code, date, source)
 );
 CREATE TABLE IF NOT EXISTS fetch_log (key TEXT PRIMARY KEY, updated_at TEXT);
+CREATE TABLE IF NOT EXISTS frame_values (
+    code TEXT NOT NULL, field TEXT NOT NULL, period TEXT NOT NULL, period_end TEXT, value REAL,
+    available_from TEXT NOT NULL, PRIMARY KEY (code, field, period)
+);
 CREATE TABLE IF NOT EXISTS filers (
     code TEXT PRIMARY KEY, cik INTEGER, loc TEXT, last_period TEXT, ticker_count INTEGER
 );
@@ -173,7 +177,7 @@ def update_fetch_time(market: Market, key: str):
 
 
 def update_filers(market: Market, frame: pd.DataFrame, period: str):
-    """Latest SEC filer location per code (loc like "US-CA" or "JP-"), from a frame response."""
+    """Latest quarterly frame (e.g. CY2026Q2) each code's company appeared in, with its location."""
     rows = [(r.code, int(r.cik), r.loc, period, int(r.ticker_count)) for r in frame.itertuples(index=False)]
     with connect(market, "fundamentals.db", FUNDAMENTALS_SCHEMA) as con:
         con.executemany("INSERT INTO filers VALUES (?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET "
@@ -181,11 +185,25 @@ def update_filers(market: Market, frame: pd.DataFrame, period: str):
                         "ticker_count=excluded.ticker_count WHERE excluded.last_period >= filers.last_period", rows)
 
 
-def list_domestic_codes(market: Market, since_period: str) -> set:
-    """Single-ticker filers with a US location in a frame from `since_period` (e.g. CY2024Q1I) on."""
+def update_frame_values(market: Market, field: str, period: str, frame: pd.DataFrame) -> int:
+    """SEC frame values per code (code, date = period end, value, available_from)."""
+    rows = [(r.code, field, period, r.date, float(r.value), r.available_from) for r in frame.itertuples(index=False)]
     with connect(market, "fundamentals.db", FUNDAMENTALS_SCHEMA) as con:
-        rows = con.execute("SELECT code FROM filers WHERE loc LIKE 'US%' AND ticker_count=1 "
-                           "AND last_period>=?", (since_period,)).fetchall()
+        con.executemany("INSERT OR REPLACE INTO frame_values VALUES (?,?,?,?,?,?)", rows)
+    return len(rows)
+
+
+def list_frame_values(market: Market, field: str) -> pd.DataFrame:
+    with connect(market, "fundamentals.db", FUNDAMENTALS_SCHEMA) as con:
+        return pd.read_sql("SELECT code, available_from, value FROM frame_values WHERE field=? "
+                           "ORDER BY available_from", con, params=(field,))
+
+
+def list_domestic_codes(market: Market, since_period: str) -> set:
+    """Single-ticker 10-Q filers seen in a quarterly frame from `since_period` (e.g. CY2024Q1) on."""
+    with connect(market, "fundamentals.db", FUNDAMENTALS_SCHEMA) as con:
+        rows = con.execute("SELECT code FROM filers WHERE ticker_count=1 AND last_period>=?",
+                           (since_period,)).fetchall()
     return {r[0] for r in rows}
 
 
@@ -208,6 +226,11 @@ def update_turnover(market: Market, code: str, turn: pd.Series) -> int:
     finally:
         con.close()
     return len(rows)
+
+
+def get_macro_last_date(market: Market, series_id: str):
+    rows = query(market.data_dir / "reference.db", f"SELECT MAX(date) FROM macro_series WHERE series_id='{series_id}'")
+    return rows[0][0] if rows else None
 
 
 def update_facts(market: Market, code: str, cik: int, frame: pd.DataFrame) -> int:
@@ -266,6 +289,7 @@ def build_status(market: Market) -> dict:
     symbols = query(d / "reference.db", "SELECT COUNT(*), SUM(is_active), SUM(is_etf) FROM symbols")
     facts = query(d / "fundamentals.db", "SELECT COUNT(DISTINCT code), COUNT(*), MAX(filed) FROM facts")
     shares = query(d / "fundamentals.db", "SELECT COUNT(DISTINCT code), MIN(date), MAX(date) FROM shares_outstanding")
+    frames = query(d / "fundamentals.db", "SELECT COUNT(DISTINCT code), COUNT(*), MAX(available_from) FROM frame_values")
     macro = query(d / "reference.db", "SELECT series_id, MAX(date), COUNT(*) FROM macro_series GROUP BY series_id")
     bar_count, first_date, last_date, bar_rows = bars[0] if bars else (0, None, None, 0)
     last_session = get_last_closed_session(market)
@@ -286,6 +310,7 @@ def build_status(market: Market) -> dict:
         "symbol_master": dict(zip(("count", "active", "etfs"), symbols[0])) if symbols else {},
         "fundamentals": dict(zip(("companies", "facts", "last_filed"), facts[0])) if facts else {},
         "shares": dict(zip(("companies", "first_date", "last_date"), shares[0])) if shares else {},
+        "frames": dict(zip(("companies", "values", "last_available"), frames[0])) if frames else {},
         "turnover": (last_run or {}).get("turnover"),
         "macro": [{"series_id": s, "last_date": dt, "rows": n} for s, dt, n in macro],
         "last_run": last_run,

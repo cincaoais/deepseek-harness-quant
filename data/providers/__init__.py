@@ -6,7 +6,7 @@ with close/volume split-adjusted and adj_close also dividend-adjusted (Yahoo's c
 """
 from importlib import import_module
 
-PROVIDERS = ("yahoo", "eodhd", "nasdaqtrader", "sec_edgar", "fred")
+PROVIDERS = ("yahoo", "eodhd", "nasdaqtrader", "sec_edgar", "fred", "bnm", "opendosm")
 
 
 def get_provider(name: str):

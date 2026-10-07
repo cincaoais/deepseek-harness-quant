@@ -217,7 +217,7 @@ Windows Task Scheduler (`schtasks`) works for this; the repo ships the scripts b
 | 2 ✅ | `MarketRules` / `CostModel` (`backtest/market_rules.py`), turnover from share counts, US/MY portfolio backtest and nine-step validation (`backtest/market_validation.py`) | Done 2026-10-06; results in §10. Nothing graded above "watch" while bars lack delisted stocks |
 | 3 ✅ | US/MY decision cards (`strategy/market_pitch.py`), separate decision store and forward tracking (`strategy/market_track.py`), "US / MY" tab on `/pitch` | Done 2026-10-06; cards from factors not graded invalid; buy list = approved cards |
 | 4a ✅ | US/MY holdings ledger with split-aware marks and exit alerts (`strategy/market_positions.py`); US/MY sections on portal, holdings, factors, backtest, data and report pages; USD/MYR, green-up | Done 2026-10-06 |
-| 4b/4c | Personas for US/MY; factor-mining skill reads market rules; calendar, insider, short-interest, earnings and Malaysian macro hypotheses; Shariah and PN17/GN3 filters; L0 thresholds per market | Each hypothesis graded by the nine-step chain |
+| 4b/4c ✅ | US/MY personas (config + snapshot + decision tracking), skills updated for US/MY; L0 and calendar tests, US value/quality factors from SEC frames, Malaysian macro (BNM, OpenDOSM), PN17/GN3 and Shariah list filters | Done 2026-10-07; personas call the LLM directly (dry-run tested, live test pending a key); results in §10 |
 | 5 | Moomoo adapter: US paper → small live; MY live with one lot | Approved cards turn into orders only after RiskAgent check |
 
 ---
@@ -293,6 +293,35 @@ What this says:
 - **Malaysia rewards trend-following, not reversal**: stocks near their 52-week high and 12-month winners lead by a wide margin; short-term reversal (strong in A-shares) loses. Low volatility is a steady, modest edge (IC t-stat 5.5).
 - **Read every number as an upper bound.** Yahoo has no delisted stocks, which flatters all factors and especially trend factors. Bursa capacity is small (≈RM0.2–0.4M at 5% of traded value), fine for a retail account but the 0.2% slippage assumption may be light for small counters.
 - **Next decisive step is survivorship-free data** (EODHD ~US$20/month covers both markets): rerun the same command and see which factors keep their edge.
+
+### Phase 4c additions (2026-10-06)
+
+**L0 regime overlay** (benchmark held at 1 − cash ratio, decided at the close, applied next session; 9-setting sensitivity grid):
+
+| | Buy and hold | With L0 | Best of grid | Verdict |
+|---|---|---|---|---|
+| US (SPY) | +15.1%/yr, Sharpe 0.94, max DD −34% | +6.0%, 0.67, −15% | Sharpe 0.91 | hurts |
+| Malaysia (KLCI) | +0.4%/yr, Sharpe 0.09, max DD −36% | −0.6%, −0.10, −17% | Sharpe 0.01 | hurts |
+
+L0 halves drawdowns but costs more return than it saves in both markets, so `timing.gate_new_positions` is off for US/MY: the regime is shown on the cards as information, not a block.
+
+**Calendar windows** (mean daily return inside vs outside the window):
+
+- Malaysia **year end** (last 5 sessions of December): KLCI +25 bp/day vs −0.1 bp, t = 4.0, consistent across years and in the holdout → **valid** (the only one). Equal-weight t = 4.8, capped at watch.
+- Malaysia after Chinese New Year: equal-weight t = 3.7 (watch); KLCI not significant.
+- US pre-holiday: equal-weight t = 2.4, SPY t = 1.1 (watch). Turn of month, January and US year end: nothing.
+- The equal-weight universe is picked on the previous 20 sessions' traded value (no same-day selection). Ten windows × two series were tested, so a single |t| near 2 can be luck; the Malaysian year-end result is strong enough to survive that.
+
+**US value / quality factors** (SEC frames used 90 days after period end; market cap = traded value ÷ turnover, so US domestic single-ticker companies only, from 2016):
+
+| Factor | Annual | Sharpe | vs SPY | IC (t) | Holdout | Grade |
+|---|---|---|---|---|---|---|
+| book_to_price | +20.5% | 0.74 | +5.3% | 0.004 (0.2) | +34.4% | watch |
+| earnings_yield | +11.8% | 0.53 | −3.4% | 0.025 (1.4) | +23.3% | watch |
+| roa (from 2012) | +10.2% | 0.56 | −4.8% | 0.020 (2.0) | +9.0% | watch |
+| asset_growth (low; from 2012) | +9.9% | 0.46 | −5.1% | 0.005 (0.6) | +8.6% | watch |
+
+Book-to-price beats SPY but its IC is near zero and its worst drawdown is −66%: a few deep-value names drive it, not a broad signal. ROA has the more reliable cross-sectional signal. None replaces the card factors yet.
 
 ---
 

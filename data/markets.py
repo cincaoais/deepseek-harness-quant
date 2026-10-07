@@ -36,6 +36,8 @@ class Market:
     validation: dict
     pitch: dict
     positions: dict
+    timing: dict
+    calendar_windows: dict
     data_dir: Path
 
     @property
@@ -90,6 +92,8 @@ def parse_market(market_id: str, block: dict) -> Market:
         validation=block.get("validation") or {},
         pitch=block.get("pitch") or {},
         positions=block.get("positions") or {},
+        timing=block.get("timing") or {},
+        calendar_windows=block.get("calendar_windows") or {},
         data_dir=CACHE_DIR / "markets" / market_id.lower(),
     )
 

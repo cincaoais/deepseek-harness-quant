@@ -59,6 +59,31 @@ def update_symbol_master(market: Market) -> int:
     return market_store.update_symbols(market, frame, source)
 
 
+def read_code_list(market: Market, path: str):
+    """Canonical codes from a CSV with a "code" column; None when the file is missing."""
+    file = BASE / path
+    if not file.exists():
+        return None
+    raw = pd.read_csv(file, comment="#", dtype=str)["code"].dropna().str.strip().str.upper()
+    # Bursa codes are four digits; spreadsheets drop the leading zeros
+    raw = raw.where(~raw.str.isdigit(), raw.str.zfill(4))
+    return {market.to_canonical(c) for c in raw}
+
+
+def apply_list_filters(market: Market, codes: list) -> list:
+    """Drop codes on any universe.list_filters.exclude list; keep only codes on every require list."""
+    filters = market.universe.get("list_filters") or {}
+    for path in filters.get("exclude") or []:
+        listed = read_code_list(market, path)
+        if listed:
+            codes = [c for c in codes if c not in listed]
+    for path in filters.get("require") or []:
+        listed = read_code_list(market, path)
+        if listed is not None:
+            codes = [c for c in codes if c in listed]
+    return codes
+
+
 def resolve_universe(market: Market, universe: str, limit: int = None, is_stocks_only: bool = False) -> list:
     """Canonical codes to update, benchmark first."""
     if universe == "seed":
@@ -79,6 +104,7 @@ def resolve_universe(market: Market, universe: str, limit: int = None, is_stocks
         if code_pattern:
             master = master[master["code"].str.rsplit(".", n=1).str[0].str.fullmatch(code_pattern)]
         codes = master["code"].tolist()
+    codes = apply_list_filters(market, codes)
     codes = [market.benchmark_symbol] + [c for c in dict.fromkeys(codes) if c != market.benchmark_symbol]
     return codes[:limit] if limit else codes
 
@@ -221,16 +247,62 @@ def get_quarter_end(year: int, quarter: int) -> date:
     return date(year, 3 * quarter, 30 if quarter in (2, 3) else 31)
 
 
+def list_frame_periods(kind: str, start_year: int, today: date) -> list:
+    """(period, period end) for quarter_instant (CY2020Q2I) or year (CY2020) SEC frames."""
+    if kind == "year":
+        return [(f"CY{y}", date(y, 12, 31)) for y in range(start_year, today.year)]
+    return list_quarters(start_year, today)
+
+
+def list_codes_by_cik(market: Market, codes: list) -> dict:
+    """CIK → codes among `codes`; preferred-share and other tickers outside the universe don't count."""
+    wanted, codes_by_cik = set(codes), {}
+    for ticker, cik in get_provider("sec_edgar").get_ticker_ciks().items():
+        code = market.from_provider(ticker, "sec_edgar")
+        if code in wanted:
+            codes_by_cik.setdefault(cik, []).append(code)
+    return codes_by_cik
+
+
+def list_single_ticker_ciks(market: Market, codes: list) -> dict:
+    """CIK → code for companies with one common-stock ticker (company totals then match the ticker)."""
+    return {cik: c[0] for cik, c in list_codes_by_cik(market, codes).items() if len(c) == 1}
+
+
+def update_fundamental_frames(market: Market, codes: list) -> dict:
+    """SEC frames listed in fundamentals.frames, each period fetched until 200 days after it ends."""
+    specs = market.fundamentals.get("frames") or []
+    if not specs:
+        return {"skipped": "no fundamentals.frames configured"}
+    sec = get_provider("sec_edgar")
+    single = list_single_ticker_ciks(market, codes)
+    lag = timedelta(days=market.fundamentals.get("frame_lag_days", 90))
+    stats = {"rows": 0, "fetched": 0, "skipped": 0, "failed": []}
+    for spec in specs:
+        for period, period_end in list_frame_periods(spec["period"], int(market.history_start[:4]) - 1, date.today()):
+            key = f"frame:{spec['field']}:{period}"
+            fetched = market_store.get_fetch_time(market, key)
+            if fetched and date.fromisoformat(fetched[:10]) > period_end + timedelta(days=200):
+                stats["skipped"] += 1
+                continue
+            try:
+                frame = sec.get_frame(spec["concept"], spec["unit"], period)
+            except ProviderError as exc:
+                stats["failed"].append(f"{spec['field']} {period}: {exc}"[:160])
+                continue
+            frame = frame[frame["cik"].isin(single)]
+            frame = frame.assign(code=frame["cik"].map(single),
+                                 available_from=[(date.fromisoformat(d) + lag).isoformat() for d in frame["date"]])
+            stats["rows"] += market_store.update_frame_values(market, spec["field"], period, frame)
+            market_store.update_fetch_time(market, key)
+            stats["fetched"] += 1
+    return stats
+
+
 def update_sec_shares(market: Market, codes: list, store, stats):
     """SEC frames: every filer's cover-page count per quarter; tickers sharing a CIK are skipped."""
     sec = get_provider("sec_edgar")
-    wanted = set(codes)
-    codes_by_cik = {}
-    for ticker, cik in sec.get_ticker_ciks().items():
-        codes_by_cik.setdefault(cik, []).append(market.from_provider(ticker, "sec_edgar"))
-    single = {cik: c[0] for cik, c in codes_by_cik.items() if len(c) == 1 and c[0] in wanted}
-    filer_codes = pd.DataFrame([(cik, code, len(c)) for cik, c in codes_by_cik.items() for code in c
-                                if code in wanted], columns=["cik", "code", "ticker_count"])
+    single = list_single_ticker_ciks(market, codes)
     for period, quarter_end in list_quarters(int(market.history_start[:4]) - 1, date.today()):
         key = f"frame:{period}"
         fetched = market_store.get_fetch_time(market, key)
@@ -243,13 +315,28 @@ def update_sec_shares(market: Market, codes: list, store, stats):
         except ProviderError as exc:
             stats["failed"].append(f"{period}: {exc}"[:160])
             continue
-        located = frame[["cik", "loc"]].merge(filer_codes, on="cik")
-        market_store.update_filers(market, located[["code", "cik", "loc", "ticker_count"]], period)
         frame = frame[frame["cik"].isin(single)]
         store(pd.DataFrame({"code": frame["cik"].map(single), "date": frame["date"], "value": frame["value"]}),
               "sec_edgar")
         market_store.update_fetch_time(market, key)
         stats["fetched"] += 1
+
+
+def update_quarterly_filers(market: Market, codes: list, stats):
+    """Mark 10-Q filers: only domestic filers report quarterly income, foreign issuers (20-F) do not.
+    Reads the last eight quarterly NetIncomeLoss frames."""
+    sec = get_provider("sec_edgar")
+    codes_by_cik = list_codes_by_cik(market, codes)
+    filer_codes = pd.DataFrame([(cik, code, len(c)) for cik, c in codes_by_cik.items() for code in c],
+                               columns=["cik", "code", "ticker_count"])
+    for period, _ in list_quarters(date.today().year - 2, date.today())[-9:-1]:
+        try:
+            frame = sec.get_frame("us-gaap:NetIncomeLoss", "USD", period[:-1])
+        except ProviderError as exc:
+            stats["failed"].append(f"filers {period}: {exc}"[:160])
+            continue
+        located = frame[["cik", "loc"]].merge(filer_codes, on="cik")
+        market_store.update_filers(market, located[["code", "cik", "loc", "ticker_count"]], period[:-1])
 
 
 def update_yahoo_shares(market: Market, codes: list, store, stats):
@@ -287,6 +374,8 @@ def update_shares(market: Market, codes: list) -> dict:
     updaters = {"sec_edgar": update_sec_shares, "yahoo": update_yahoo_shares}
     for source in market.shares.get("sources") or []:
         updaters[source](market, codes, store, stats)
+    if market.shares.get("domestic_only"):
+        update_quarterly_filers(market, codes, stats)
     return stats
 
 
@@ -298,7 +387,7 @@ def update_turnover(market: Market, codes: list) -> dict:
     domestic = None
     if market.shares.get("domestic_only"):
         recent = date.today() - timedelta(days=730)
-        domestic = market_store.list_domestic_codes(market, f"CY{recent.year}Q1I")
+        domestic = market_store.list_domestic_codes(market, f"CY{recent.year}Q1")
     for code in codes:
         if domestic is not None and code not in domestic:
             market_store.clear_turnover(market, code)
@@ -346,25 +435,30 @@ def update_fundamentals(market: Market, codes: list) -> dict:
 
 
 def update_macro(market: Market) -> dict:
-    source = market.providers.get("macro")
-    series = market.macro.get("series") or []
-    if not source or not series:
-        return {"skipped": "no macro provider configured"}
-    provider = get_provider(source)
+    """Each macro.series entry: a series id for providers.macro, or {id, provider, ...} for its own provider."""
+    series = [s if isinstance(s, dict) else {"id": s, "provider": market.providers.get("macro")}
+              for s in market.macro.get("series") or []]
+    if not series:
+        return {"skipped": "no macro series configured"}
     stats = {"series": 0, "rows": 0, "failed": []}
-    for series_id in series:
+    for spec in series:
+        last = market_store.get_macro_last_date(market, spec["id"])
+        # refetch the last ~6 weeks so late revisions and the latest month are picked up
+        start = max(market.history_start, (date.fromisoformat(last) - timedelta(days=40)).isoformat()) if last else market.history_start
         try:
-            stats["rows"] += market_store.update_macro(market, series_id, provider.get_series(series_id), source)
+            frame = get_provider(spec["provider"]).get_series(spec, start)
+            frame = frame[frame["date"] >= start]
+            stats["rows"] += market_store.update_macro(market, spec["id"], frame, spec["provider"])
             stats["series"] += 1
         except ProviderError as exc:
-            stats["failed"].append(f"{series_id}: {exc}"[:160])
+            stats["failed"].append(f"{spec['id']}: {exc}"[:160])
     return stats
 
 
 def handle_update(args) -> dict:
     market = get_market(args.market)
     universe = args.universe or market.universe.get("default", "seed")
-    steps = (args.symbols, args.bars, args.full, args.shares, args.turnover, args.fundamentals, args.macro)
+    steps = (args.symbols, args.bars, args.full, args.shares, args.turnover, args.fundamentals, args.frames, args.macro)
     is_bars_run = args.bars or args.full or not any(steps)
     report = {"market": market.id, "universe": universe, "started_at": market_store.now_text()}
     if args.symbols:
@@ -374,8 +468,10 @@ def handle_update(args) -> dict:
         report["bars"] = update_bars(market, codes, is_full_refresh=args.full)
     if args.shares:
         report["shares"] = update_shares(market, codes)
+    if args.frames:
+        report["frames"] = update_fundamental_frames(market, codes)
     # rewritten bar rows lose their turnover, so recompute it after every bar update
-    if args.turnover or args.shares or (is_bars_run and market.shares):
+    if args.turnover or args.shares or args.frames or (is_bars_run and market.shares):
         report["turnover"] = update_turnover(market, codes)
     if args.fundamentals:
         report["fundamentals"] = update_fundamentals(market, codes)
@@ -400,6 +496,7 @@ def main():
     parser.add_argument("--shares", action="store_true", help="update share counts (then turnover)")
     parser.add_argument("--turnover", action="store_true", help="recompute daily turnover from stored share counts")
     parser.add_argument("--fundamentals", action="store_true", help="update SEC company facts")
+    parser.add_argument("--frames", action="store_true", help="update SEC frames (equity, assets, net income)")
     parser.add_argument("--macro", action="store_true", help="update macro series")
     parser.add_argument("--status", action="store_true", help="print coverage of every market and exit")
     args = parser.parse_args()

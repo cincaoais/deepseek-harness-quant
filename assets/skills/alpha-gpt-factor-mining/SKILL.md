@@ -230,3 +230,9 @@ reward = clamp(sortino, -3, 5)
 - 论文完整蒸馏报告（`_AlphaGPT_ref/散落资料_20260815/alpha_gpt_蒸馏报告.md`，30KB）与 `Alpha-GPT2.0_蒸馏报告.md`（2.0 甄别：5 页草稿无实验数据，"双智能体"非论文原文；同目录含全文抓取 html/txt/pdf 原件）
 - 工作区验证链：`因子池/因子入池验证链标准流程_V1.md`、`因子池/scripts/quality_gate_check.py`
 - HKUST 原始论文（人机交互 alpha 挖掘，概念同源但非本仓库）：arXiv:2308.00016（v1）/ arXiv:2402.09746（2.0）
+
+---
+
+## US / Bursa Malaysia
+
+The formula language above targets A-share panels. For US / Bursa Malaysia candidates, express each formula as a panel function in `factors/market_factors.py` and run it through `backtest/market_validation.py`; see the US / Bursa Malaysia section of `factor-mining-workflow` and `backtest-acceptance`. Price limits and lot sizes come from `config/markets.yaml`, not from the ±9.5% A-share rule.

@@ -2,7 +2,8 @@
 """US / Bursa Malaysia decisions and forward tracking, kept apart from the A-share holdings.
 
 output/market_desk/<market>_decisions.json  buy / drop per code and card date
-output/market_desk/<market>_track.json      forward pool: auto_pitch = every card, human_select = approved buys
+output/market_desk/<market>_track.json      forward pool: auto_pitch = every card, human_select = approved buys,
+                                            persona_select = AI persona buys (with the persona id)
 
 Forward return at horizon k = close k-1 sessions after entry / entry open - 1, where entry is the
 open after the signal date (the T+1 fill a trader gets).
@@ -66,11 +67,22 @@ def append_track(market: Market, cards: dict) -> int:
     return len(added)
 
 
+def append_persona_track(market: Market, persona: str, codes: list, signal_date: str) -> int:
+    """Add a persona's buy calls to the forward pool (once per persona, code and signal date)."""
+    track = read_json(get_desk_path(market, "track"), [])
+    seen = {(e.get("persona"), e["code"], e["signal_date"]) for e in track}
+    added = [{"code": c, "signal_date": signal_date, "pool": "persona_select", "persona": persona,
+              "decided": None, "entry_date": None, "entry_open": None, "fwd": {}}
+             for c in dict.fromkeys(codes) if (persona, c, signal_date) not in seen]
+    write_json(get_desk_path(market, "track"), track + added)
+    return len(added)
+
+
 def update_track_decision(market: Market, code: str, signal_date: str, action):
     """An approved buy moves its pool entry to human_select; drop/undo moves it back to auto_pitch."""
     track = read_json(get_desk_path(market, "track"), [])
     for entry in track:
-        if entry["code"] == code and entry["signal_date"] == signal_date:
+        if entry["code"] == code and entry["signal_date"] == signal_date and entry["pool"] != "persona_select":
             entry["decided"] = action
             entry["pool"] = "human_select" if action == "buy" else "auto_pitch"
     write_json(get_desk_path(market, "track"), track)
@@ -104,15 +116,17 @@ def update_forward(market: Market) -> int:
 
 
 def summarize_track(market: Market) -> dict:
-    """Per pool and horizon: sample size, mean forward return and win rate."""
+    """Per pool (and per persona) and horizon: sample size, mean forward return and win rate."""
     track = read_json(get_desk_path(market, "track"), [])
+    groups = {pool: [e for e in track if e["pool"] == pool] for pool in ("auto_pitch", "human_select", "persona_select")}
+    for persona in sorted({e["persona"] for e in track if e.get("persona")}):
+        groups[f"persona:{persona}"] = [e for e in track if e.get("persona") == persona]
     summary = {}
-    for pool in ("auto_pitch", "human_select"):
-        entries = [e for e in track if e["pool"] == pool]
-        summary[pool] = {"entries": len(entries)}
+    for name, entries in groups.items():
+        summary[name] = {"entries": len(entries)}
         for k in HORIZONS:
             values = [e["fwd"][f"t{k}"] for e in entries if f"t{k}" in (e.get("fwd") or {})]
-            summary[pool][f"t{k}"] = ({"n": len(values), "mean": sum(values) / len(values),
+            summary[name][f"t{k}"] = ({"n": len(values), "mean": sum(values) / len(values),
                                       "win_rate": sum(v > 0 for v in values) / len(values)} if values else None)
     return summary
 

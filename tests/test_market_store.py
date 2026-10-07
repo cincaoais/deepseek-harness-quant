@@ -90,17 +90,18 @@ def test_foreign_and_multi_class_tickers_get_no_turnover(market_in):
     market = market_in("US")
     bars = pd.DataFrame({"date": ["2026-01-05"], "open": 10.0, "high": 10.0, "low": 10.0, "close": 10.0,
                          "preclose": None, "volume": 50.0, "amount": 500.0, "turn": None, "pct_chg": None})
-    filers = pd.DataFrame({"code": ["AAA.US", "TM.US", "GOOG.US"], "cik": [1, 2, 3],
-                           "loc": ["US-CA", "JP-", "US-CA"], "ticker_count": [1, 1, 2]})
-    market_store.update_filers(market, filers, "CY2026Q1I")
-    for code in filers["code"]:
+    quarterly_filers = pd.DataFrame({"code": ["AAA.US", "GOOG.US"], "cik": [1, 3], "loc": ["US-CA", "US-CA"],
+                                     "ticker_count": [1, 2]})
+    market_store.update_filers(market, quarterly_filers, "CY2026Q1")
+    codes = ["AAA.US", "TM.US", "GOOG.US"]
+    for code in codes:
         market_store.update_bars(market, code, bars, "split", "test")
         market_store.update_bars(market, code, bars, "qfq", "test")
         market_store.update_shares(market, pd.DataFrame({"code": [code], "date": ["2025-12-31"], "value": [1000.0],
                                                          "available_from": ["2026-01-01"]}), "yahoo")
-    market_update.update_turnover(market, list(filers["code"]))
+    market_update.update_turnover(market, codes)
     cache = market_store.get_bar_cache(market)
-    turn = {c: cache.get_daily(c, adjust="qfq")["turn"].iloc[0] for c in filers["code"]}
+    turn = {c: cache.get_daily(c, adjust="qfq")["turn"].iloc[0] for c in codes}
     assert turn["AAA.US"] == 5.0
     assert pd.isna(turn["TM.US"]) and pd.isna(turn["GOOG.US"])
 
@@ -113,3 +114,18 @@ def test_update_bars_keeps_exchange_sessions_only(market_in, monkeypatch):
     dates = market_store.get_bar_cache(market).get_daily("AAPL.US", adjust="qfq")["date"].tolist()
     assert dates[0] == "2026-01-02"
     assert "2026-01-01" not in dates
+
+
+@pytest.mark.parametrize("lists, expected", [
+    ({}, ["0166.MY", "1155.MY", "7498.MY"]),
+    ({"exclude": ["pn17.csv"]}, ["0166.MY", "1155.MY"]),
+    ({"exclude": ["pn17.csv"], "require": ["shariah.csv"]}, ["0166.MY"]),
+    ({"require": ["missing.csv"]}, ["0166.MY", "1155.MY", "7498.MY"]),
+])
+def test_list_filters_drop_excluded_and_keep_required_codes(market_in, tmp_path, monkeypatch, lists, expected):
+    (tmp_path / "pn17.csv").write_text("# PN17\ncode,name\n7498,Ralco\n")
+    (tmp_path / "shariah.csv").write_text("code,name\n166,Inari\n7498,Ralco\n")
+    monkeypatch.setattr(market_update, "BASE", tmp_path)
+    market = market_in("MY")
+    market.universe["list_filters"] = {k: [str(p) for p in v] for k, v in lists.items()}
+    assert market_update.apply_list_filters(market, ["0166.MY", "1155.MY", "7498.MY"]) == expected

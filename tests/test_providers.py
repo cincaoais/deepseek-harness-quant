@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import pandas as pd
 
@@ -55,3 +56,29 @@ def test_sec_facts_keep_filing_dates_and_mark_instants():
         payload, ["dei:EntityCommonStockSharesOutstanding", "us-gaap:NetIncomeLoss"])
     assert frame[["concept", "period_start", "period_end", "value", "filed"]].values.tolist() == [
         ["dei:EntityCommonStockSharesOutstanding", "", "2026-07-17", 14594180000, "2026-07-31"]]
+
+
+def test_bnm_opr_decisions_are_deduplicated_and_sorted():
+    from data.providers import bnm
+    rows = [{"date": "2024-05-09", "new_opr_level": 3}, {"date": "2024-01-24", "new_opr_level": 3},
+            {"date": "2024-05-09", "new_opr_level": 3}]
+    assert bnm.parse_opr(rows).values.tolist() == [["2024-01-24", 3], ["2024-05-09", 3]]
+
+
+def test_opendosm_rows_are_filtered_to_the_series():
+    from data.providers import opendosm
+    rows = [{"date": "2009-12-01", "index": 99.0, "division": "overall"},
+            {"date": "2026-08-01", "index": 137.5, "division": "overall"},
+            {"date": "2026-08-01", "index": 161.2, "division": "01"}]
+    frame = opendosm.parse_rows(rows, {"division": "overall"}, "index", "2010-01-01")
+    assert frame.values.tolist() == [["2026-08-01", 137.5]]
+
+
+@pytest.mark.parametrize("stored, expected", [("sk-real", "sk-real"), ("<your-deepseek-api-key>", None)])
+def test_keys_are_read_from_the_harness_credentials_file(tmp_path, monkeypatch, stored, expected):
+    from data.providers import base
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.setattr(base, "PARAMS_PATH", tmp_path / "missing.yaml")
+    (tmp_path / "creds.yaml").write_text(f"DEEPSEEK_API_KEY: {stored}\n")
+    monkeypatch.setattr(base, "HARNESS_CREDENTIALS_PATH", tmp_path / "creds.yaml")
+    assert base.get_credential("DEEPSEEK_API_KEY") == expected

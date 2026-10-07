@@ -145,3 +145,15 @@ P5 (衔接) 候选表提交验证链               P10 决策归档 + 人机迭�
 - 团队资产：`桌面/技能/factor-pool-methodology/`、`因子池/docs/回测引擎与方法论核心资产手册_v1_20260815.md`、`因子池/output/combo_reports/反人性因子证伪知识库_20260815.md`
 - 外部调研：`调研_开源AI自动挖因子引擎_2023-2026_20260816.md`（工作区根目录，506 行）
 - AlphaGPT 源：`_AlphaGPT_ref/`（model_core/、times.py）、论文蒸馏 `_AlphaGPT_ref/散落资料_20260815/`
+
+---
+
+## US / Bursa Malaysia factors
+
+Same ten phases; the tooling differs:
+
+1. **Formula:** add a function to `factors/market_factors.py` that takes the panel (dates × codes) and returns raw values. Panel fields: `open`, `close` (adjusted), `raw_close`, `amount`, `turn`, `adv_20`; US also `equity`, `assets`, `net_income` (SEC frames, used 90 days after period end). A new SEC concept is one line in `fundamentals.frames`.
+2. **Register:** add `{name, sign}` to `validation.factors` for the market in `config/markets.yaml` (sign +1 = higher is better).
+3. **Validate:** `python backtest/market_validation.py --market US` (or `MY`): IC screen, duplicate gate (score correlation ≥ 0.7), T+1 portfolio after costs, by year and holdout, orthogonality, capacity, archive.
+4. **Use:** only factors not graded invalid may enter `pitch.factors`; the card builder drops invalid ones automatically.
+5. **Disclose** the data boundaries listed in `backtest-acceptance` (survivorship, turnover start, restatements).

@@ -295,6 +295,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({"ok": True, **build_book(market)})
             except Exception as e:
                 return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
+        if path == "/api/markets/personas":   # US / MY AI personas: system prompts and the live snapshot
+            try:
+                market = self._market()
+                from strategy import market_personas as mpe
+                return self._send_json({"ok": True, **mpe.build_persona_desk(market)})
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
         if path == "/api/markets/overview":   # one row per market for the portal and report pages
             try:
                 if str(BASE) not in sys.path:
@@ -302,6 +309,16 @@ class Handler(BaseHTTPRequestHandler):
                 from data.markets import list_markets
                 from strategy.market_overview import build_overview
                 return self._send_json({"ok": True, "results": [build_overview(m) for m in list_markets().values()]})
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
+        if path == "/api/markets/timing":   # L0 overlay and calendar-window tests (backtest/market_timing.py)
+            try:
+                if str(BASE) not in sys.path:
+                    sys.path.insert(0, str(BASE))
+                from backtest.market_timing import get_timing_report
+                from data.markets import list_markets
+                reports = [get_timing_report(mid) for mid in list_markets()]
+                return self._send_json({"ok": True, "results": [r for r in reports if r]})
             except Exception as e:
                 return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
         if path == "/api/markets/validation":   # latest US / Bursa factor validation (backtest/market_validation.py)
@@ -908,6 +925,38 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("action must be open, close or delete")
                 return self._send_json({"ok": True, "position": result})
             except (KeyError, TypeError, ValueError) as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 400)
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
+        if path == "/api/markets/persona_chat":   # ask a US / MY persona (empty text = daily review)
+            try:
+                rec = self._read_json()
+                if str(BASE) not in sys.path:
+                    sys.path.insert(0, str(BASE))
+                from data.markets import get_market
+                from data.providers.base import ProviderError
+                from strategy.market_personas import handle_consult
+                try:
+                    result = handle_consult(get_market(str(rec.get("market", ""))), str(rec.get("persona", "")),
+                                            str(rec.get("text") or "").strip() or None)
+                except ProviderError as e:
+                    return self._send_json({"ok": False, "error": "ProviderError", "message": str(e)}, 502)
+                return self._send_json({"ok": True, **result})
+            except (KeyError, ValueError) as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 400)
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
+        if path == "/api/markets/persona_record":   # record a US / MY persona reply's JSON decisions
+            try:
+                rec = self._read_json()
+                if str(BASE) not in sys.path:
+                    sys.path.insert(0, str(BASE))
+                from data.markets import get_market
+                from strategy.market_personas import update_persona_decisions
+                result = update_persona_decisions(get_market(str(rec.get("market", ""))), str(rec.get("persona", "")),
+                                                  str(rec.get("text") or ""))
+                return self._send_json({"ok": True, **result})
+            except (KeyError, ValueError) as e:
                 return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 400)
             except Exception as e:
                 return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
