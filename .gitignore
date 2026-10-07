@@ -15,6 +15,7 @@ harness/home/sessions/
 harness/home/storages/
 harness/home/profiles/web/node_modules/
 harness/home/.anonymous-user-id
+harness/home/quantapi_archived.json
 harness/home/.credentials.yaml
 
 # ---- 数据（Tushare 协议：不得再分发；请自行获取） ----

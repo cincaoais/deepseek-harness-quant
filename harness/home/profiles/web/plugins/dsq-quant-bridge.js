@@ -162,6 +162,86 @@ module.exports = {
       return null
     }
 
+    // the control page (ui_v2/pages/control.html) calls /quantapi/* and /niuapi/*; each route answers both
+    function route(paths, handler) {
+      for (const path of paths) ctx.effect(() => webServer.register({ kind: 'exact', path: path, handler: handler }))
+    }
+    // panel-only hidden/unlocked lists: deleting in the control page never touches HARNESS sessions
+    const PANEL_FILE = require('path').join(process.env.DSH_HOME || require('os').homedir() + '/.dsh', 'quantapi_archived.json')
+    function readPanel() {
+      try {
+        const d = JSON.parse(require('fs').readFileSync(PANEL_FILE, 'utf8'))
+        return { ids: Array.isArray(d.ids) ? d.ids : [], unlocked: Array.isArray(d.unlocked) ? d.unlocked : [] }
+      } catch (e) { return { ids: [], unlocked: [] } }
+    }
+    function writePanel(panel) {
+      require('fs').writeFileSync(PANEL_FILE, JSON.stringify(panel))
+    }
+    function lockOf(item, panel) {
+      const coreLocked = String(item.title || '').indexOf('主系统') >= 0
+      return { coreLocked: coreLocked, locked: coreLocked || (item.current === true && panel.unlocked.indexOf(item.id) < 0) }
+    }
+    async function listPanelSessions() {
+      const roots = agents ? agents.roots() : []
+      const panel = readPanel()
+      const list = []
+      for (let idx = 0; idx < roots.length; idx++) {
+        const id = roots[idx] && roots[idx].id ? String(roots[idx].id) : null
+        if (!id || panel.ids.indexOf(id) >= 0) continue
+        const last = recentTextOf((await messagesOf(id, 3)).messages)
+        const item = { id: id, title: sessionTitleOf(id) || ('会话 ' + (idx + 1)), preview: last ? last.text : '',
+          role: last ? last.role : '', ts: Date.now(), current: idx === 0 }
+        list.push(Object.assign(item, lockOf(item, panel)))
+      }
+      return list
+    }
+    async function hideSessions(ids) {
+      const panel = readPanel()
+      const byId = {}
+      for (const s of await listPanelSessions()) byId[s.id] = s
+      const hidden = [], skipped = []
+      for (const id of ids.filter((x) => byId[x])) {
+        if (byId[id].locked) skipped.push(id)
+        else if (panel.ids.indexOf(id) < 0) { panel.ids.push(id); hidden.push(id) }
+      }
+      writePanel(panel)
+      return { hidden: hidden, skipped: skipped }
+    }
+    function panelPost(path, apply) {
+      route([path], async (req, res) => {
+        cors(res)
+        if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
+        try { json(res, 200, Object.assign({ ok: true }, await apply(JSON.parse((await readBody(req)) || '{}')))) }
+        catch (e) { json(res, 500, { ok: false, error: String((e && e.message) || e).slice(0, 200) }) }
+      })
+    }
+    panelPost('/quantapi/delete', async (body) => {
+      const r = await hideSessions([String(body.sessionId || '')])
+      if (r.skipped.length) throw new Error('locked session')
+      return { deleted: r.hidden.length }
+    })
+    panelPost('/quantapi/delete-batch', async (body) => {
+      const r = await hideSessions((body.sessionIds || []).map(String))
+      return { deleted: r.hidden.length, skipped: r.skipped }
+    })
+    panelPost('/quantapi/clear-all', async () => {
+      const all = await listPanelSessions()
+      const r = await hideSessions(all.filter((s) => !s.locked).map((s) => s.id))
+      return { deleted: r.hidden.length, locked: all.filter((s) => s.locked).length }
+    })
+    panelPost('/quantapi/restore-all', async () => {
+      const panel = readPanel()
+      writePanel({ ids: [], unlocked: panel.unlocked })
+      return { restored: panel.ids.length }
+    })
+    panelPost('/quantapi/unlock', async (body) => {
+      const panel = readPanel()
+      const id = String(body.sessionId || '')
+      if (panel.unlocked.indexOf(id) < 0) panel.unlocked.push(id)
+      writePanel(panel)
+      return { unlocked: id }
+    })
+
     function buildPersona(p) {
       return '你是「牛散·' + p.name + '」人格模拟（基于公开资料牛散档案 ' + p.skill + ' 蒸馏魔改；不构成投资建议）。\n'
         + '【风格与选股视角】\n' + p.style + '\n'
@@ -252,37 +332,15 @@ module.exports = {
       return niuBootLock[key]
     }
 
-    ctx.effect(() => webServer.register({
-      kind: 'exact', path: '/quant/sessions',
-      handler: async (req, res) => {
+    route(['/quant/sessions', '/quantapi/sessions'], async (req, res) => {
         cors(res)
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
         try {
-          const roots = agents ? agents.roots() : []
-          const list = []
-          for (let idx = 0; idx < roots.length; idx++) {
-            const a = roots[idx]
-            const id = a && a.id ? String(a.id) : null
-            if (!id) continue
-            const msgs = await messagesOf(id, 3)
-            const last = recentTextOf(msgs.messages)
-            list.push({
-              id: id,
-              title: sessionTitleOf(id) || ('会话 ' + (idx + 1)),
-              preview: last ? last.text : '',
-              role: last ? last.role : '',
-              ts: Date.now(),
-              current: idx === 0
-            })
-          }
-          json(res, 200, { ok: true, sessions: list })
+          json(res, 200, { ok: true, sessions: await listPanelSessions() })
         } catch (e) { json(res, 500, { ok: false, error: String((e && e.message) || e).slice(0, 200) }) }
-      }
-    }))
+      })
 
-    ctx.effect(() => webServer.register({
-      kind: 'exact', path: '/quant/niu/sessions',
-      handler: async (req, res) => {
+    route(['/quant/niu/sessions', '/niuapi/sessions'], async (req, res) => {
         cors(res)
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
         try {
@@ -301,12 +359,9 @@ module.exports = {
           }
           json(res, 200, { ok: true, personas: catalog })
         } catch (e) { json(res, 500, { ok: false, error: String((e && e.message) || e).slice(0, 200) }) }
-      }
-    }))
+      })
 
-    ctx.effect(() => webServer.register({
-      kind: 'exact', path: '/quant/niu/chat',
-      handler: async (req, res) => {
+    route(['/quant/niu/chat', '/niuapi/chat'], async (req, res) => {
         cors(res)
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
         let key = '', text = '', snapshot = ''
@@ -340,12 +395,9 @@ module.exports = {
             { source: { kind: 'user' }, signal: fakeSignal() })
           json(res, 200, { ok: true, accepted: true, persona: key, childId: childId })
         } catch (e) { json(res, 500, { ok: false, error: String((e && e.message) || e).slice(0, 200) }) }
-      }
-    }))
+      })
 
-    ctx.effect(() => webServer.register({
-      kind: 'exact', path: '/quant/niu/recent',
-      handler: async (req, res) => {
+    route(['/quant/niu/recent', '/niuapi/recent'], async (req, res) => {
         cors(res)
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
         try {
@@ -363,12 +415,9 @@ module.exports = {
           const r = await messagesOf(childId, limit)
           json(res, 200, { ok: true, persona: key, childId: childId, messages: r.messages, debug: r.debug })
         } catch (e) { json(res, 500, { ok: false, error: String((e && e.message) || e).slice(0, 200) }) }
-      }
-    }))
+      })
 
-    ctx.effect(() => webServer.register({
-      kind: 'exact', path: '/quant/chat2',
-      handler: async (req, res) => {
+    route(['/quant/chat2', '/quantapi/chat2'], async (req, res) => {
         cors(res)
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
         let text = '', sessionId = null
@@ -387,12 +436,9 @@ module.exports = {
           else { json(res, 500, { ok: false, error: 'no followup/steer' }); return }
           json(res, 200, { ok: true, accepted: true, sessionId: String(agent.id) })
         } catch (e) { json(res, 500, { ok: false, error: String((e && e.message) || e).slice(0, 200) }) }
-      }
-    }))
+      })
 
-    ctx.effect(() => webServer.register({
-      kind: 'exact', path: '/quant/recent',
-      handler: async (req, res) => {
+    route(['/quant/recent', '/quantapi/recent'], async (req, res) => {
         cors(res)
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
         try {
@@ -402,19 +448,15 @@ module.exports = {
           const r = await messagesOf(sessionId, limit)
           json(res, 200, { ok: true, sessionId: sessionId, messages: r.messages })
         } catch (e) { json(res, 500, { ok: false, error: String((e && e.message) || e).slice(0, 200) }) }
-      }
-    }))
+      })
 
-    ctx.effect(() => webServer.register({
-      kind: 'exact', path: '/quant/agents',
-      handler: async (req, res) => {
+    route(['/quant/agents', '/quantapi/agents'], async (req, res) => {
         cors(res)
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
         try {
           const roots = agents ? agents.roots() : []
           json(res, 200, { ok: true, rootIds: roots.map(function (a) { return a && a.id ? String(a.id) : null }).filter(Boolean), ts: Date.now() })
         } catch (e) { json(res, 500, { ok: false, error: String((e && e.message) || e).slice(0, 200) }) }
-      }
-    }))
+      })
   },
 }

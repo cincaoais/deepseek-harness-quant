@@ -629,6 +629,7 @@
             if (hasNewAgent || waited >= 90000) {
               clearInterval(timer);
               busy = false;
+              renderMsgs(ms);
               document.getElementById('hz-chat-status').textContent = hasNewAgent ? '✓ 已回复' : '（回复超时，见完整 GUI）';
               if (hasNewAgent && curTarget && curTarget.kind === 'niu') {
                 var niuMsg = ms[ms.length - 1];
