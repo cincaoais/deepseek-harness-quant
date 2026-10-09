@@ -1,6 +1,6 @@
-# US and Bursa Malaysia: data, validation, decision cards and holdings
+# US and Bursa Malaysia: data, validation, decision cards, holdings and orders
 
-Phases 1–4a of [RnD-US-Malaysia.md](RnD-US-Malaysia.md). Fetches and stores US and Malaysian market data next to the A-share data, runs the project's nine-step factor validation with each market's own trading rules and costs, and turns the surviving factors into decision cards on the `/pitch` page ("US / MY" tab). The A-share system is not touched.
+Phases 1–5 of [RnD-US-Malaysia.md](RnD-US-Malaysia.md). Fetches and stores US and Malaysian market data next to the A-share data, runs the project's nine-step factor validation with each market's own trading rules and costs, turns the surviving factors into decision cards on the `/pitch` page ("US / MY" tab), and routes approved cards and exit alerts to moomoo as orders you confirm one by one. The A-share system is not touched. Steps left for the Windows PC: [windows-setup.md](windows-setup.md).
 
 ## What it does
 
@@ -26,6 +26,7 @@ Everything is configured in `config/markets.yaml` (copy from `config/markets.yam
 ```bat
 pip install -r requirements.txt
 copy config\markets.yaml.example config\markets.yaml
+copy config\broker.yaml.example config\broker.yaml
 setx SEC_USER_AGENT "Your Name your@email.com"
 ```
 
@@ -54,7 +55,7 @@ python data\market_update.py --status                           :: coverage of e
 
 ## Scheduling with Windows Task Scheduler (Malaysia time)
 
-The US closes at 04:00 MYT (05:00 when the US is on winter time); Bursa closes at 17:00. `scripts\market_daily.cmd <market>` updates the data and then builds that day's decision cards.
+The US closes at 04:00 MYT (05:00 when the US is on winter time); Bursa closes at 17:00. `scripts\market_daily.cmd <market>` updates the data, builds that day's decision cards, syncs moomoo orders and fills (paper/live mode only), prints holdings and asks the personas.
 
 ```bat
 schtasks /Create /TN "DSHQuant-US-Daily" /SC WEEKLY /D TUE,WED,THU,FRI,SAT /ST 07:00 ^
@@ -168,13 +169,34 @@ python strategy\market_positions.py --market US     :: holdings, P&L and exit al
 - **Marks:** latest unadjusted close. A split after entry restates entry price and shares on today's basis, so P&L stays right. Dividends are not booked yet.
 - **Exit alerts** (alerts only, you decide): `risk/stop_rules.py` with `positions.stop_rules` from config: hard stop (`stop_loss_pct`, also the stop shown on cards), drawdown from the peak close, take-profit levels; plus the **rebalance exit** the validation tested: after `rebalance_days` sessions a stock that is no longer on the cards should be sold.
 
+## Orders through moomoo (phase 5)
+
+```bat
+python strategy\market_orders.py --market US          :: drafts with risk checks
+python strategy\market_orders.py --market US --sync   :: order states, fills, account, reconcile (also in market_daily.cmd)
+```
+
+- **Config:** `config/broker.yaml` (template `.example`). `mode: preview` (default) never sends; `paper` sends to the moomoo paper account (US only: moomoo has no Bursa paper trading, so MY stays in preview); `live` sends to the real account. Per-market override under `markets.<id>.mode`. OpenD (moomoo's gateway app) must run on the same PC, logged in; the desk probes `opend.host:port` first and reports "OpenD is not reachable" instead of hanging.
+- **Drafts (single source):** buys only for the buy list (approved cards) not yet held or ordered, sized from the card in whole shares (US) or board lots (MY); sells only for held positions with exit alerts (all of it, or half for a take-profit below the upper band). Limit price = reference close ± `limit_buffer_pct` on the tick grid (`rules.tick_sizes` in `markets.yaml`), DAY order.
+- **Risk check before every send**, against a fresh moomoo account:
+  - Blocking: kill switch; reference close older than `max_price_age_days`; `max_orders_per_day` reached.
+  - Caps that reduce the quantity, buys only: `max_order_qty` (MY: one 100-share lot to start), `max_order_value`, `max_daily_value`, buying power.
+  - Sells: the shares moomoo reports as sellable.
+  - Portfolio limits: `risk/risk_agent.py` with the `risk` block (fractions of equity).
+  - The verdict is approve / reduce / reject, with the reasons.
+- **Send:** a person presses Send, enters the quantity (up to the checked size) and confirms; the API refuses a send without `confirm: true`. Each order carries the remark `dsq <id>` so a lost reply can be matched later.
+- **Sync:** refreshes working orders; a final order with a fill is booked in the holdings ledger once (buys open a position tagged `paper` or `live`; sells close the drafted position, or part of it on a partial fill). It then snapshots cash and positions and **reconciles** the ledger's shares with moomoo per code. In preview mode Sync reads the real account read-only.
+- **Kill switch:** the stop file (`kill_switch_file`) blocks every send; engaging it from the page also cancels this desk's working orders in all markets.
+- **Logs:** `logs/market_orders.log` (one JSON line per send, fill, sync, cancel, kill switch) and `logs/risk_audit.log` (RiskAgent decisions at send time). Orders: `output/market_desk/<market>_orders.json`; last account snapshot: `<market>_broker.json`.
+- APIs: `GET /api/markets/orders?market=US` (files only, never contacts moomoo), `POST /api/markets/orders {market, action: send|cancel|sync, key, qty, confirm, id}` and `{action: kill, is_on}`; broker errors return 502.
+
 ## Pages
 
 | Page | US / MY section |
 |---|---|
 | `/` portal, `/report` | one row per market: data date, L0 regime, cards, buy list, holdings value and P&L, exit alerts, validation grades |
-| `/pitch` | "US / MY" tab: cards, buy / drop / undo, buy list with Record fill, factor evidence, forward tracking |
-| `/holdings` | market switch: open positions with P&L and exit alerts, record / close / delete, closed positions |
+| `/pitch` | "US / MY" tab: cards, buy / drop / undo, buy list with Record fill, orders (drafts, risk checks, send, sync, reconcile, kill switch), factor evidence, forward tracking |
+| `/holdings` | market switch: open positions with P&L and exit alerts (moomoo paper fills marked *paper*), record / close / delete, closed positions |
 | `/factors` | "US / MY" tab: validation table (grade, return, Sharpe, drawdown, excess, IC, holdout, capacity) and excess return by year |
 | `/backtest` | equity curves of the validated factor portfolios vs SPY / KLCI (log scale, after costs) |
 | `/data` | coverage per market: bars, symbol master, share counts, turnover, SEC facts, macro, bars source |
@@ -203,4 +225,4 @@ Why not through HARNESS: personas need no tools or agent loops (the HARNESS brid
 python -m pytest tests
 ```
 
-Offline unit tests (no network) for symbol mapping, provider parsers, point-in-time lookup, re-adjustment, turnover, trading costs, lot rounding, price limits, next-open execution and grading.
+Offline unit tests (no network) for symbol mapping, provider parsers, point-in-time lookup, re-adjustment, turnover, trading costs, lot rounding, price limits, next-open execution and grading, and the order desk against a fake moomoo connection (SDK-shaped replies, no account).

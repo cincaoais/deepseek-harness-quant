@@ -127,7 +127,7 @@ EODHD   /api/eod/1155.KLSE   and   /api/exchange-symbol-list/KLSE?delisted=1
 | Tiger | — | — | — | Not available to Malaysian residents |
 | Alpaca | — | — | — | Malaysia not named; UNVERIFIED |
 
-Design rule to keep (it matches AGENTS.md): the broker adapter only converts **cards you approved on `/pitch`** into orders, after the RiskAgent check. No auto-trading path. Start with Moomoo **US paper**; for Malaysia (no paper) use the internal `paper_account` first, then live with one lot.
+Design rule to keep (it matches AGENTS.md): the broker adapter only converts **cards you approved on `/pitch`** into orders, after the RiskAgent check. No auto-trading path. Start with Moomoo **US paper**; for Malaysia (no paper) stay in preview mode (drafts and risk checks, nothing sent), then live with one lot. Built in phase 5: [markets-data.md](markets-data.md#orders-through-moomoo-phase-5).
 
 ---
 
@@ -218,7 +218,7 @@ Windows Task Scheduler (`schtasks`) works for this; the repo ships the scripts b
 | 3 ✅ | US/MY decision cards (`strategy/market_pitch.py`), separate decision store and forward tracking (`strategy/market_track.py`), "US / MY" tab on `/pitch` | Done 2026-10-06; cards from factors not graded invalid; buy list = approved cards |
 | 4a ✅ | US/MY holdings ledger with split-aware marks and exit alerts (`strategy/market_positions.py`); US/MY sections on portal, holdings, factors, backtest, data and report pages; USD/MYR, green-up | Done 2026-10-06 |
 | 4b/4c ✅ | US/MY personas (config + snapshot + decision tracking), skills updated for US/MY; L0 and calendar tests, US value/quality factors from SEC frames, Malaysian macro (BNM, OpenDOSM), PN17/GN3 and Shariah list filters | Done 2026-10-07; personas call the LLM directly (dry-run tested, live test pending a key); results in §10 |
-| 5 | Moomoo adapter: US paper → small live; MY live with one lot | Approved cards turn into orders only after RiskAgent check |
+| 5 ✅ | Moomoo order desk (`broker/moomoo_broker.py`, `strategy/market_orders.py`, `config/broker.yaml`): drafts from approved cards and exit alerts, risk check (caps, buying power, RiskAgent), confirmed send, fills synced into holdings, reconcile, kill switch, logs; preview / paper / live modes | Built 2026-10-07 and tested against a fake moomoo connection; US paper → small live and MY one-lot live are the Windows steps in [windows-setup.md](windows-setup.md) |
 
 ---
 
@@ -333,6 +333,11 @@ Book-to-price beats SPY but its IC is near zero and its worst drawdown is −66%
 - IBKR: whether Malaysian residents can trade Bursa stocks.
 - Bursa tick sizes and price-limit details for ETFs/warrants (read from summaries of the 2025 Trading Manual).
 - `exchange_calendars` coverage of `XKLS` holidays (Hari Raya dates move each year).
+- moomoo MY OpenAPI, on your account:
+  - whether the US paper account is listed for `FUTUMY` with `US` in `trdmarket_auth`;
+  - whether `order_fee_query` works on paper;
+  - whether Bursa orders are accepted outside trading hours (else send them in the 08:30 pre-open);
+  - whether whole-share-only API orders for US hold (the desk never sends fractions).
 
 ---
 

@@ -1,7 +1,8 @@
 /* ui_v2/components/market_desk.js — US / Bursa Malaysia decision desk (the /pitch "US / MY" tab).
    Data: /api/markets (market list) and /api/markets/desk?market=ID (cards, decisions, buy list, tracking).
    Actions: POST /api/markets/decide {market, code, action}; the buy list is the approved cards only;
-   "Record fill" posts the executed buy to /api/markets/positions. Needs market_views.js loaded first.
+   "Record fill" posts the executed buy to /api/markets/positions. Needs market_views.js loaded first;
+   the orders section comes from market_orders.js when the page loads it.
    Usage: LW.marketDesk.load(box) as a tab loader. */
 (function () {
   'use strict';
@@ -93,8 +94,9 @@
           esc(current) + '</code>.</div></div>';
         return;
       }
-      body.innerHTML = renderHeader(d) + renderBuyList(d) + renderCards(d) + '<div id="md-personas"></div>' +
-        renderEvidence(d.cards) + renderTrack(d.track);
+      body.innerHTML = renderHeader(d) + renderBuyList(d) + '<div id="md-orders"></div>' + renderCards(d) +
+        '<div id="md-personas"></div>' + renderEvidence(d.cards) + renderTrack(d.track);
+      if (LW.marketOrders) LW.marketOrders.mount(box.querySelector('#md-orders'), current);
       loadPersonas(box);
     }).catch(function (e) { body.innerHTML = '<div class="mini">' + esc(e) + '</div>'; });
   }

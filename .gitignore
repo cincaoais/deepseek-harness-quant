@@ -7,6 +7,10 @@ __pycache__/
 
 # ---- 本地配置（含真实密钥，勿提交） ----
 config/params.yaml
+config/markets.yaml
+config/market_personas.yaml
+config/broker.yaml
+config/lists/*.csv
 harness/home/.credentials.yaml
 
 # ---- HARNESS 运行时与用户数据 ----

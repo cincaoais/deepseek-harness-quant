@@ -58,8 +58,9 @@ def resolve_code(market: Market, code: str) -> str:
 
 
 def create_position(market: Market, code: str, shares: float, price: float, trade_date: str = None,
-                    fees: float = None, note: str = "") -> dict:
-    """Record a buy fill; the source is the card date when the code was an approved card."""
+                    fees: float = None, note: str = "", account: str = "manual") -> dict:
+    """Record a buy fill; the source is the card date when the code was an approved card.
+    `account` is manual (typed in), live or paper (moomoo fills from strategy/market_orders.py)."""
     shares, price = float(shares), float(price)
     if shares <= 0 or price <= 0:
         raise ValueError("shares and price must be positive")
@@ -70,7 +71,7 @@ def create_position(market: Market, code: str, shares: float, price: float, trad
         "id": uuid.uuid4().hex[:8], "code": code, "name": names.get(code), "shares": shares,
         "entry_price": price, "entry_date": trade_date or date.today().isoformat(),
         "entry_fees": round(float(fees), 2) if fees is not None else estimate_fees(market, "buy", shares * price),
-        "source": f"card {max(approved)}" if approved else "manual", "note": note, "status": "open",
+        "source": f"card {max(approved)}" if approved else "manual", "note": note, "account": account, "status": "open",
         "exit_price": None, "exit_date": None, "exit_fees": None, "exit_reason": None,
         "recorded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
@@ -86,7 +87,9 @@ def get_position(positions: list, position_id: str) -> dict:
 
 
 def close_position(market: Market, position_id: str, price: float, trade_date: str = None,
-                   fees: float = None, reason: str = "manual") -> dict:
+                   fees: float = None, reason: str = "manual", shares: float = None) -> dict:
+    """Record a sell fill; `shares` (today's split basis) below the holding closes that part and
+    leaves the rest open under the same id, with entry fees split pro rata."""
     positions = list_positions(market)
     position = get_position(positions, position_id)
     if position["status"] != "open":
@@ -94,10 +97,19 @@ def close_position(market: Market, position_id: str, price: float, trade_date: s
     if float(price) <= 0:
         raise ValueError("price must be positive")
     exit_date = trade_date or date.today().isoformat()
-    shares = position["shares"] * compute_split_factor(market, position["code"], position["entry_date"], exit_date)
+    factor = compute_split_factor(market, position["code"], position["entry_date"], exit_date)
+    held = position["shares"] * factor
+    if shares is not None and float(shares) < held - 1e-9:
+        part = float(shares) / held
+        rest = {**position, "shares": position["shares"] * (1 - part),
+                "entry_fees": round(position["entry_fees"] * (1 - part), 2)}
+        position.update(id=uuid.uuid4().hex[:8], shares=position["shares"] * part,
+                        entry_fees=round(position["entry_fees"] * part, 2))
+        positions.append(rest)
+        held = float(shares)
     position.update(status="closed", exit_price=float(price), exit_date=exit_date, exit_reason=reason,
                     exit_fees=round(float(fees), 2) if fees is not None
-                    else estimate_fees(market, "sell", shares * float(price)))
+                    else estimate_fees(market, "sell", held * float(price)))
     write_positions(market, positions)
     return position
 

@@ -82,6 +82,7 @@ markets:
     rules:
       lot_size: null                  # fractional shares (moomoo MY); no lot rounding
       price_limit: null               # no daily limit (LULD pauses only)
+      tick_sizes: [[0, 0.0001], [1.0, 0.01]]   # [from price, tick]: $0.0001 under $1, else 1 cent
     costs:                            # per side, in USD; moomoo MY schedule (docs/RnD-US-Malaysia.md §1)
       commission_pct: 0.0003
       platform_fee: 0.99              # per order, on top of commission
@@ -168,6 +169,7 @@ markets:
     rules:
       lot_size: 100
       price_limit: {pct: 0.30, below_price: 1.0, abs: 0.30}   # ±30%, or ±30 sen under RM1
+      tick_sizes: [[0, 0.005], [1.0, 0.01], [10.0, 0.02], [100.0, 0.10]]   # Bursa bid sizes
     costs:                            # per side, in MYR; moomoo MY + Bursa (docs/RnD-US-Malaysia.md §1)
       commission_pct: 0.0003
       platform_fee: 3.0               # per order, on top of commission

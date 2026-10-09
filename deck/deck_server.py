@@ -302,6 +302,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({"ok": True, **mpe.build_persona_desk(market)})
             except Exception as e:
                 return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
+        if path == "/api/markets/orders":   # US / MY order desk: drafts, risk checks, moomoo orders (reads files only)
+            try:
+                market = self._market()
+                from strategy.market_orders import build_order_desk
+                return self._send_json({"ok": True, **build_order_desk(market)})
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
         if path == "/api/markets/overview":   # one row per market for the portal and report pages
             try:
                 if str(BASE) not in sys.path:
@@ -957,6 +964,35 @@ class Handler(BaseHTTPRequestHandler):
                                                   str(rec.get("text") or ""))
                 return self._send_json({"ok": True, **result})
             except (KeyError, ValueError) as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 400)
+            except Exception as e:
+                return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)
+        if path == "/api/markets/orders":   # US / MY orders: send (confirmed), cancel, sync, kill switch
+            try:
+                rec = self._read_json()
+                if str(BASE) not in sys.path:
+                    sys.path.insert(0, str(BASE))
+                from broker.moomoo_broker import BrokerError
+                from data.markets import get_market
+                from strategy import market_orders as mo
+                action = rec.get("action")
+                if action == "kill":
+                    return self._send_json({"ok": True, **mo.update_kill_switch(bool(rec.get("is_on")))})
+                market = get_market(str(rec.get("market", "")))
+                if action == "send":
+                    if rec.get("confirm") is not True:
+                        raise ValueError("send needs confirm: true")
+                    order = mo.handle_send(market, str(rec.get("key", "")), rec.get("qty"))
+                    return self._send_json({"ok": order["status"] != "failed", "order": order,
+                                            "message": order["message"] or f"order {order['broker_order_id']} sent"})
+                if action == "cancel":
+                    return self._send_json({"ok": True, "order": mo.handle_cancel(market, str(rec.get("id", "")))})
+                if action == "sync":
+                    return self._send_json({"ok": True, **mo.handle_sync(market)})
+                raise ValueError("action must be send, cancel, sync or kill")
+            except BrokerError as e:
+                return self._send_json({"ok": False, "error": "BrokerError", "message": str(e)}, 502)
+            except (KeyError, TypeError, ValueError) as e:
                 return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 400)
             except Exception as e:
                 return self._send_json({"ok": False, "error": type(e).__name__, "message": str(e)}, 500)

@@ -1,0 +1,55 @@
+# moomoo order routing for the US / MY tab (strategy/market_orders.py, broker/moomoo_broker.py).
+# Copy to config/broker.yaml and edit; without it the desk stays in preview mode.
+# Every order is sent by a person pressing Send: nothing here trades on its own.
+
+provider: moomoo
+
+# preview: draft and risk-check orders, never send (default)
+# paper:   send to the moomoo paper account (TrdEnv SIMULATE); US only, moomoo has no Bursa paper trading
+# live:    send to the real account; needs OpenD unlocked for trading
+mode: preview
+
+opend:                       # OpenD runs on the same PC and is logged in to your moomoo MY account
+  host: 127.0.0.1
+  port: 11111
+  security_firm: FUTUMY      # moomoo Malaysia
+  is_encrypt: null           # leave null for a local OpenD
+  connect_timeout_s: 3
+
+# Live trading password for unlocking OpenD from the desk; read from the environment,
+# config/params.yaml data.api_keys or harness/home/.credentials.yaml. Unset: unlock in the OpenD window.
+password_env: MOOMOO_TRADE_PASSWORD
+
+# Stop file: while it exists nothing is sent. The Kill switch button creates it and cancels working orders.
+kill_switch_file: output/market_desk/STOP_TRADING
+
+# Order and daily value caps limit buys; exits are only held to the shares moomoo reports as sellable.
+markets:
+  US:
+    mode: null               # per-market override of `mode`
+    has_paper: true
+    acc_id: {paper: 0, live: 0}   # 0 = the first account the API lists for this market
+    max_order_value: 2000    # USD per order; larger drafts are reduced to fit
+    max_order_qty: null      # shares per order
+    max_orders_per_day: 10   # buys and sells
+    max_daily_value: 10000   # USD of buys sent per day
+    limit_buffer_pct: 0.01   # buy limit = reference close × 1.01, sell limit = × 0.99
+    max_price_age_days: 5    # refuse drafts priced from closes older than this (calendar days)
+  MY:
+    mode: null
+    has_paper: false         # live only: start with one 100-share lot per order
+    acc_id: {live: 0}
+    max_order_value: 3000    # MYR per order
+    max_order_qty: 100       # one board lot until the flow is proven
+    max_orders_per_day: 5
+    max_daily_value: 10000
+    limit_buffer_pct: 0.01
+    max_price_age_days: 5
+
+# Portfolio limits for risk/risk_agent.py, as fractions of account equity. Drawdown and sector checks
+# are not fed here (no account NAV history or sectors for US / MY yet).
+risk:
+  max_position_pct: 0.12     # one buy at most 12% of equity
+  max_symbol_exposure: 0.15
+  max_industry_pct: 1.0
+  max_total_exposure: 1.0

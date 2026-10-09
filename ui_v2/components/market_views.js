@@ -89,7 +89,8 @@
           var alerts = p.alerts.map(function (a) {
             return '<span class="tag-ot" title="' + fmt.esc(a.detail) + '" style="color:#f59e0b">' + fmt.esc(a.rule) + '</span>';
           }).join(' ');
-          return '<tr><td>' + fmt.esc(p.code) + '</td><td>' + fmt.esc(p.name) + '</td><td>' + fmt.num(m.shares, 4) + '</td><td>' +
+          var paper = p.account === 'paper' ? ' <span class="tag-ot" title="moomoo paper fill">paper</span>' : '';
+          return '<tr><td>' + fmt.esc(p.code) + paper + '</td><td>' + fmt.esc(p.name) + '</td><td>' + fmt.num(m.shares, 4) + '</td><td>' +
             fmt.num(m.entry, 4) + '</td><td>' + fmt.esc(p.entry_date) + '</td><td>' + fmt.num(m.last, 4) + ' <span class="mini">' +
             fmt.esc(m.last_date || '') + '</span></td><td>' + fmt.money(m.value, cur) + '</td><td>' + fmt.pnl(m.pnl, cur) + ' ' + fmt.pct(m.pnl_pct) +
             '</td><td>' + (m.sessions_held == null ? '–' : m.sessions_held) + '</td><td>' + (alerts || '–') + '</td><td>' +

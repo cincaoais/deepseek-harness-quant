@@ -20,6 +20,7 @@ pyyaml>=6.0                # 读取 config/params.yaml
 requests>=2.31             # SEC EDGAR / FRED / Nasdaq Trader / EODHD
 yfinance>=1.7              # Yahoo 日线（US + .KL）
 exchange_calendars>=4.5    # 交易日历 XNYS / XKLS
+moomoo-api>=10.11          # moomoo OpenD 下单（config/broker.yaml；预览模式不需要）
 
 # ---- 可选 ----
 matplotlib>=3.8            # 图表

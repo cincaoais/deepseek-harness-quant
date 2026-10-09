@@ -38,3 +38,12 @@ def is_buyable(rules: dict, open_price: float, preclose: float, price_level: flo
     below = price_level < limit.get("below_price", 0)
     up_pct = limit["abs"] / price_level if below else limit["pct"]
     return open_price < preclose * (1 + up_pct) * (1 - 1e-6)
+
+
+def compute_limit_price(rules: dict, ref_price: float, side: str, buffer_pct: float) -> float:
+    """Limit `buffer_pct` through the reference price, on the tick grid and never past the buffer:
+    buys round down, sells round up. `tick_sizes` lists [from price, tick] pairs."""
+    target = ref_price * (1 + buffer_pct if side == "buy" else 1 - buffer_pct)
+    tick = next((t for start, t in reversed(rules.get("tick_sizes") or [[0, 0.01]]) if target >= start), 0.01)
+    ticks = math.floor(target / tick + 1e-9) if side == "buy" else math.ceil(target / tick - 1e-9)
+    return round(ticks * tick, 6)
